@@ -10,11 +10,32 @@ View your app in AI Studio: https://ai.studio/apps/drive/1g_bJqNSZxO_ZuhDAxtITP1
 
 ## Run Locally
 
-**Prerequisites:**  Node.js
-
+### Frontend Application
 
 1. Install dependencies:
-   `npm install`
+   ```bash
+   npm install
+   ```
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
-   `npm run dev`
+   ```bash
+   npm run dev
+   ```
+   The app will be available at http://localhost:3000
+
+### Backend Notification Service
+
+The backend worker runs separately to check for Waze incidents and send notifications.
+
+1. Navigate to the server directory:
+   ```bash
+   cd server
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the worker:
+   ```bash
+   npm run dev
+   ```

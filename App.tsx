@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
 import { AlertTriangle, RefreshCw, Search, ListFilter, LayoutDashboard, Map as MapIcon, Sparkles, Rss, Layers } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { fetchWazeIncidents, fetchTrafficView } from './services/wazeService';
@@ -13,12 +14,13 @@ import { SummaryModal } from './components/SummaryModal';
 import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
 
 function App() {
+  const { incidentId } = useParams();
   const [incidents, setIncidents] = useState<ManagedIncident[]>([]);
   const [trafficData, setTrafficData] = useState<WazeTrafficJam[]>([]);
   const [showTraffic, setShowTraffic] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingTraffic, setLoadingTraffic] = useState(false);
-  
+
   const [selectedIncident, setSelectedIncident] = useState<ManagedIncident | null>(null);
   const [filter, setFilter] = useState<FilterCategory>('ALL');
   const [search, setSearch] = useState('');
@@ -44,16 +46,16 @@ function App() {
 
   const processData = (newData: ManagedIncident[]) => {
     setIncidents(prev => {
-        const prevEntries: [string, ManagedIncident][] = prev.map(item => [item.uuid, item]);
-        const prevMap = new Map<string, ManagedIncident>(prevEntries);
-        
-        return newData.map(newItem => {
-            const existing = prevMap.get(newItem.uuid);
-            if (existing) {
-                return { ...newItem, status: existing.status };
-            }
-            return newItem;
-        });
+      const prevEntries: [string, ManagedIncident][] = prev.map(item => [item.uuid, item]);
+      const prevMap = new Map<string, ManagedIncident>(prevEntries);
+
+      return newData.map(newItem => {
+        const existing = prevMap.get(newItem.uuid);
+        if (existing) {
+          return { ...newItem, status: existing.status };
+        }
+        return newItem;
+      });
     });
   };
 
@@ -68,8 +70,8 @@ function App() {
     const source = FEED_SOURCES.find(s => s.id === activeFeedId);
     // Even for custom, we check if there's a corresponding known TVT ID or fallback
     if (activeFeedId === 'custom') {
-       // Using the fallback/default custom ID provided in requirements
-       return FEED_SOURCES.find(s => s.id === 'custom')?.tvtUrl || '';
+      // Using the fallback/default custom ID provided in requirements
+      return FEED_SOURCES.find(s => s.id === 'custom')?.tvtUrl || '';
     }
     return source ? source.tvtUrl : '';
   }, [activeFeedId]);
@@ -90,7 +92,7 @@ function App() {
       if (isManual) {
         addToast("Feed updated successfully", 'success');
       }
-      
+
       // If traffic toggle is on, fetch traffic data too
       if (showTraffic) {
         loadTrafficData();
@@ -98,11 +100,11 @@ function App() {
 
     } catch (error: any) {
       console.error("Feed Fetch Error:", error);
-      const errorMessage = error.message === 'Failed to fetch' 
-        ? "Network error: Unable to connect to Waze feed. Likely CORS restriction." 
+      const errorMessage = error.message === 'Failed to fetch'
+        ? "Network error: Unable to connect to Waze feed. Likely CORS restriction."
         : `Error fetching feed: ${error.message}`;
       addToast(errorMessage, 'error');
-      
+
       if (incidents.length === 0) {
         addToast("Loaded demo data for visualization", 'info');
         const demoData = DEMO_ALERTS.map(alert => ({
@@ -119,37 +121,37 @@ function App() {
   };
 
   const loadTrafficData = async () => {
-      const tvtUrl = getEffectiveTrafficUrl();
-      if (!tvtUrl) return;
-      
-      setLoadingTraffic(true);
-      try {
-          const jams = await fetchTrafficView(tvtUrl);
-          setTrafficData(jams);
-      } catch (e: any) {
-          console.error("Traffic View Error", e);
-          addToast("Failed to load traffic view data", 'error');
-          // Don't disable toggle, just show error
-      } finally {
-          setLoadingTraffic(false);
-      }
+    const tvtUrl = getEffectiveTrafficUrl();
+    if (!tvtUrl) return;
+
+    setLoadingTraffic(true);
+    try {
+      const jams = await fetchTrafficView(tvtUrl);
+      setTrafficData(jams);
+    } catch (e: any) {
+      console.error("Traffic View Error", e);
+      addToast("Failed to load traffic view data", 'error');
+      // Don't disable toggle, just show error
+    } finally {
+      setLoadingTraffic(false);
+    }
   };
 
   const toggleTrafficView = () => {
-      const newState = !showTraffic;
-      setShowTraffic(newState);
-      if (newState) {
-          loadTrafficData();
-      } else {
-          setTrafficData([]);
-      }
+    const newState = !showTraffic;
+    setShowTraffic(newState);
+    if (newState) {
+      loadTrafficData();
+    } else {
+      setTrafficData([]);
+    }
   };
 
   // Re-fetch traffic if feed changes while enabled
   useEffect(() => {
-      if (showTraffic) {
-          loadTrafficData();
-      }
+    if (showTraffic) {
+      loadTrafficData();
+    }
   }, [activeFeedId]);
 
   const handleGenerateSummary = async () => {
@@ -160,13 +162,13 @@ function App() {
 
     setSummaryOpen(true);
     setGeneratingSummary(true);
-    setSummaryText(''); 
+    setSummaryText('');
 
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const incidentContext = incidents.map(i => {
-         const subtype = SUBTYPE_MAPPING[i.subtype || ''] || i.subtype || i.type;
-         return `- ${subtype} at ${i.street}, ${i.city} (Rel: ${i.reliability})`;
+        const subtype = SUBTYPE_MAPPING[i.subtype || ''] || i.subtype || i.type;
+        return `- ${subtype} at ${i.street}, ${i.city} (Rel: ${i.reliability})`;
       }).join('\n');
       const prompt = `
           As a Traffic Operations Manager, analyze the active incidents and organize them by **Location**.
@@ -227,10 +229,20 @@ function App() {
     return () => clearInterval(interval);
   }, [activeFeedId, customFeedUrl]);
 
+  // Handle URL Routing for specific incident
+  useEffect(() => {
+    if (incidentId && incidents.length > 0) {
+      const found = incidents.find(i => i.uuid === incidentId);
+      if (found) {
+        setSelectedIncident(found);
+      }
+    }
+  }, [incidentId, incidents]);
+
   const handleUpdateStatus = (id: string, newStatus: IncidentStatus) => {
     setIncidents(prev => prev.map(inc => inc.uuid === id ? { ...inc, status: newStatus } : inc));
     if (selectedIncident && selectedIncident.uuid === id) {
-        setSelectedIncident(prev => prev ? { ...prev, status: newStatus } : null);
+      setSelectedIncident(prev => prev ? { ...prev, status: newStatus } : null);
     }
     addToast(`Incident marked as ${(newStatus as string).toLowerCase()}`, 'success');
   };
@@ -239,18 +251,18 @@ function App() {
     return incidents
       .filter(inc => {
         if (filter !== 'ALL') {
-            if (filter === 'HAZARD') {
-                if (!inc.type.includes('HAZARD')) return false;
-            } else {
-                if (inc.type !== filter) return false;
-            }
+          if (filter === 'HAZARD') {
+            if (!inc.type.includes('HAZARD')) return false;
+          } else {
+            if (inc.type !== filter) return false;
+          }
         }
         if (search) {
-            const term = search.toLowerCase();
-            const subtype = (SUBTYPE_MAPPING[inc.subtype || ''] || inc.subtype || '').toLowerCase();
-            const street = (inc.street || '').toLowerCase();
-            const city = (inc.city || '').toLowerCase();
-            if (!subtype.includes(term) && !street.includes(term) && !city.includes(term)) return false;
+          const term = search.toLowerCase();
+          const subtype = (SUBTYPE_MAPPING[inc.subtype || ''] || inc.subtype || '').toLowerCase();
+          const street = (inc.street || '').toLowerCase();
+          const city = (inc.city || '').toLowerCase();
+          if (!subtype.includes(term) && !street.includes(term) && !city.includes(term)) return false;
         }
         return true;
       })
@@ -260,7 +272,7 @@ function App() {
   return (
     <div className="min-h-screen bg-[#f3f4f6]">
       <ToastContainer toasts={toasts} removeToast={removeToast} />
-      
+
       {/* Navbar */}
       <nav className="bg-white border-b border-gray-200 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -281,135 +293,135 @@ function App() {
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
+
         {/* Top Section: Stats & Search */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
           <div className="lg:col-span-2 space-y-6">
             {/* Header Area */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-               <div>
-                 <h2 className="text-2xl font-bold text-gray-900">Live Traffic Incidents</h2>
-                 <p className="text-gray-500 text-sm mt-1">Real-time feed from partner network</p>
-               </div>
-               
-               <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
-                 {/* Feed Source Selector */}
-                 <div className="flex items-center gap-2">
-                   <div className="relative">
-                      <Rss className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
-                      <select
-                        value={activeFeedId}
-                        onChange={(e) => setActiveFeedId(e.target.value)}
-                        className="pl-9 pr-8 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none shadow-sm cursor-pointer"
-                        style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em' }}
-                      >
-                        {FEED_SOURCES.map(source => (
-                          <option key={source.id} value={source.id}>{source.name}</option>
-                        ))}
-                      </select>
-                   </div>
-                   
-                   {activeFeedId === 'custom' && (
-                     <input 
-                       type="text" 
-                       placeholder="Enter Waze JSON Feed URL..."
-                       value={customFeedUrl}
-                       onChange={(e) => setCustomFeedUrl(e.target.value)}
-                       className="w-full sm:w-48 px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all"
-                     />
-                   )}
-                 </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Live Traffic Incidents</h2>
+                <p className="text-gray-500 text-sm mt-1">Real-time feed from partner network</p>
+              </div>
 
-                 <button
-                    onClick={() => loadData(true)}
-                    disabled={loading}
-                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-blue-600 hover:border-blue-300 transition-all shadow-sm whitespace-nowrap disabled:opacity-50"
-                 >
-                    <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-                    <span className="hidden md:inline">Refresh</span>
-                 </button>
-                 
-                 <button
-                    onClick={handleGenerateSummary}
-                    disabled={loading || generatingSummary}
-                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 border border-transparent rounded-xl text-sm font-medium text-white hover:bg-indigo-700 transition-all shadow-sm whitespace-nowrap disabled:opacity-50 hover:shadow-indigo-200 hover:shadow-md"
-                 >
-                    <Sparkles size={18} />
-                    <span className="hidden md:inline">AI Summary</span>
-                 </button>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                {/* Feed Source Selector */}
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <Rss className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <select
+                      value={activeFeedId}
+                      onChange={(e) => setActiveFeedId(e.target.value)}
+                      className="pl-9 pr-8 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none shadow-sm cursor-pointer"
+                      style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em' }}
+                    >
+                      {FEED_SOURCES.map(source => (
+                        <option key={source.id} value={source.id}>{source.name}</option>
+                      ))}
+                    </select>
+                  </div>
 
-                 <div className="relative flex-1 sm:flex-initial">
-                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
-                   <input 
-                     type="text" 
-                     placeholder="Search..." 
-                     value={search}
-                     onChange={(e) => setSearch(e.target.value)}
-                     className="pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-full sm:w-40 md:w-48 transition-all shadow-sm"
-                   />
-                 </div>
-               </div>
+                  {activeFeedId === 'custom' && (
+                    <input
+                      type="text"
+                      placeholder="Enter Waze JSON Feed URL..."
+                      value={customFeedUrl}
+                      onChange={(e) => setCustomFeedUrl(e.target.value)}
+                      className="w-full sm:w-48 px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all"
+                    />
+                  )}
+                </div>
+
+                <button
+                  onClick={() => loadData(true)}
+                  disabled={loading}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-blue-600 hover:border-blue-300 transition-all shadow-sm whitespace-nowrap disabled:opacity-50"
+                >
+                  <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+                  <span className="hidden md:inline">Refresh</span>
+                </button>
+
+                <button
+                  onClick={handleGenerateSummary}
+                  disabled={loading || generatingSummary}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 border border-transparent rounded-xl text-sm font-medium text-white hover:bg-indigo-700 transition-all shadow-sm whitespace-nowrap disabled:opacity-50 hover:shadow-indigo-200 hover:shadow-md"
+                >
+                  <Sparkles size={18} />
+                  <span className="hidden md:inline">AI Summary</span>
+                </button>
+
+                <div className="relative flex-1 sm:flex-initial">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-full sm:w-40 md:w-48 transition-all shadow-sm"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Filters */}
-            <IncidentFilter 
-                currentFilter={filter} 
-                onFilterChange={setFilter} 
-                incidents={incidents}
+            <IncidentFilter
+              currentFilter={filter}
+              onFilterChange={setFilter}
+              incidents={incidents}
             />
 
             {/* View Controls & Toggle */}
             <div className="flex flex-col sm:flex-row justify-between items-center border-b border-gray-200 pb-2 gap-3">
-               <span className="text-sm font-medium text-gray-500 self-start sm:self-center">
-                 Showing {filteredIncidents.length} incidents
-               </span>
-               
-               <div className="flex items-center gap-4 self-end sm:self-center">
-                   {/* Traffic Toggle */}
-                   <button 
-                     onClick={toggleTrafficView}
-                     className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-sm font-medium
-                         ${showTraffic 
-                            ? 'bg-orange-50 border-orange-200 text-orange-700' 
-                            : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}
-                     `}
-                   >
-                       <Layers size={16} className={loadingTraffic ? 'animate-spin' : ''} />
-                       Traffic View {showTraffic ? 'On' : 'Off'}
-                   </button>
+              <span className="text-sm font-medium text-gray-500 self-start sm:self-center">
+                Showing {filteredIncidents.length} incidents
+              </span>
 
-                   {/* View Switcher */}
-                   <div className="flex bg-gray-100 p-1 rounded-lg">
-                     <button 
-                       onClick={() => setViewMode('LIST')}
-                       className={`p-1.5 rounded-md transition-all ${viewMode === 'LIST' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
-                       title="List View"
-                     >
-                       <ListFilter size={18} />
-                     </button>
-                     <button 
-                       onClick={() => setViewMode('GRID')}
-                       className={`p-1.5 rounded-md transition-all ${viewMode === 'GRID' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
-                       title="Grid View"
-                     >
-                       <LayoutDashboard size={18} />
-                     </button>
-                     <button 
-                       onClick={() => setViewMode('MAP')}
-                       className={`p-1.5 rounded-md transition-all ${viewMode === 'MAP' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
-                       title="Map View"
-                     >
-                       <MapIcon size={18} />
-                     </button>
-                   </div>
-               </div>
+              <div className="flex items-center gap-4 self-end sm:self-center">
+                {/* Traffic Toggle */}
+                <button
+                  onClick={toggleTrafficView}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-sm font-medium
+                         ${showTraffic
+                      ? 'bg-orange-50 border-orange-200 text-orange-700'
+                      : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}
+                     `}
+                >
+                  <Layers size={16} className={loadingTraffic ? 'animate-spin' : ''} />
+                  Traffic View {showTraffic ? 'On' : 'Off'}
+                </button>
+
+                {/* View Switcher */}
+                <div className="flex bg-gray-100 p-1 rounded-lg">
+                  <button
+                    onClick={() => setViewMode('LIST')}
+                    className={`p-1.5 rounded-md transition-all ${viewMode === 'LIST' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+                    title="List View"
+                  >
+                    <ListFilter size={18} />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('GRID')}
+                    className={`p-1.5 rounded-md transition-all ${viewMode === 'GRID' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+                    title="Grid View"
+                  >
+                    <LayoutDashboard size={18} />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('MAP')}
+                    className={`p-1.5 rounded-md transition-all ${viewMode === 'MAP' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+                    title="Map View"
+                  >
+                    <MapIcon size={18} />
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Content Area */}
             {viewMode === 'MAP' ? (
-              <IncidentMap 
-                incidents={filteredIncidents} 
-                onSelect={setSelectedIncident} 
+              <IncidentMap
+                incidents={filteredIncidents}
+                onSelect={setSelectedIncident}
                 trafficData={showTraffic ? trafficData : []}
               />
             ) : (
@@ -428,9 +440,9 @@ function App() {
                   </div>
                 ) : (
                   filteredIncidents.map((incident) => (
-                    <IncidentCard 
-                      key={incident.uuid} 
-                      incident={incident} 
+                    <IncidentCard
+                      key={incident.uuid}
+                      incident={incident}
                       onClick={() => setSelectedIncident(incident)}
                       compact={viewMode === 'LIST'}
                     />
@@ -443,35 +455,72 @@ function App() {
           {/* Right Column: Stats (Desktop Sticky) */}
           <div className="hidden lg:block">
             <div className="sticky top-24 space-y-6">
-                <IncidentStats incidents={incidents} />
-                
-                {/* Mini Help Card */}
-                <div className="bg-gradient-to-br from-indigo-900 to-blue-900 rounded-2xl p-6 text-white shadow-lg">
-                   <h3 className="font-bold text-lg mb-2">Team Dispatch</h3>
-                   <p className="text-indigo-200 text-sm mb-4">
-                     Select an incident to view details and instantly dispatch a team via WhatsApp integration.
-                   </p>
-                   <div className="flex items-center gap-2 text-xs text-indigo-300">
-                      <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-                      System Operational
-                   </div>
+              <IncidentStats incidents={incidents} />
+
+              {/* Mini Help Card */}
+              <div className="bg-gradient-to-br from-indigo-900 to-blue-900 rounded-2xl p-6 text-white shadow-lg">
+                <h3 className="font-bold text-lg mb-2">Team Dispatch</h3>
+                <p className="text-indigo-200 text-sm mb-4">
+                  Select an incident to view details and instantly dispatch a team via WhatsApp integration.
+                </p>
+                <div className="flex items-center gap-2 text-xs text-indigo-300">
+                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                  System Operational
                 </div>
+              </div>
+
+              {/* Debug / Simulation Card */}
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-gray-900">Simulation</h3>
+                  <span className="text-xs font-semibold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">DEV</span>
+                </div>
+                <p className="text-sm text-gray-500 mb-4">
+                  Test the notification service integration by triggering a mock alert.
+                </p>
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('/api/notify', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'x-api-key': 'secret123' },
+                        body: JSON.stringify({
+                          alertSlug: 'road_incident',
+                          message: '⚠️ <b>TEST ALERT</b>\n\nThis is a mock alert triggered from the frontend.\n<a href="http://localhost:3000/detail/mock-incident-123">View Details</a>',
+                          parseMode: 'HTML'
+                        })
+                      });
+                      if (response.ok) {
+                        addToast('Mock alert sent successfully', 'success');
+                      } else {
+                        throw new Error('Server responded with error');
+                      }
+                    } catch (e) {
+                      console.error(e);
+                      addToast('Failed to send mock alert', 'error');
+                    }
+                  }}
+                  className="w-full py-2.5 bg-white border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all text-sm shadow-sm"
+                >
+                  Send Mock Alert
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </main>
 
-      <IncidentModal 
-        incident={selectedIncident} 
-        onClose={() => setSelectedIncident(null)} 
+      <IncidentModal
+        incident={selectedIncident}
+        onClose={() => setSelectedIncident(null)}
         onUpdateStatus={handleUpdateStatus}
       />
 
-      <SummaryModal 
-        isOpen={summaryOpen} 
-        onClose={() => setSummaryOpen(false)} 
-        summary={summaryText} 
-        isLoading={generatingSummary} 
+      <SummaryModal
+        isOpen={summaryOpen}
+        onClose={() => setSummaryOpen(false)}
+        summary={summaryText}
+        isLoading={generatingSummary}
       />
     </div>
   );
@@ -488,13 +537,13 @@ const IncidentCard: React.FC<IncidentCardProps> = ({ incident, onClick, compact 
   const config = CATEGORY_CONFIG[incident.type] || CATEGORY_CONFIG.default;
   const Icon = config.icon;
   const readableSubtype = incident.subtype ? (SUBTYPE_MAPPING[incident.subtype] || incident.subtype) : incident.type;
-  
+
   let statusColor = 'bg-gray-100 text-gray-600';
   if (incident.status === IncidentStatus.ACKNOWLEDGED) statusColor = 'bg-blue-100 text-blue-700';
   if (incident.status === IncidentStatus.RESOLVED) statusColor = 'bg-green-100 text-green-700';
 
   return (
-    <div 
+    <div
       onClick={onClick}
       className={`
         bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group
@@ -509,37 +558,37 @@ const IncidentCard: React.FC<IncidentCardProps> = ({ incident, onClick, compact 
       </div>
 
       <div className="flex-1 min-w-0">
-         <div className="flex justify-between items-start">
-            <h3 className="text-gray-900 font-semibold truncate pr-2">{readableSubtype}</h3>
-            {incident.status !== IncidentStatus.NEW && (
-                <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full ${statusColor}`}>
-                    {incident.status}
-                </span>
-            )}
-         </div>
-         <p className="text-gray-500 text-sm truncate mt-0.5">
-           {incident.street || 'Unknown Street'}, {incident.city}
-         </p>
-         
-         {!compact && (
-            <div className="mt-4 flex items-center justify-between text-xs text-gray-400">
-                <span>Reliability Score: {incident.reliability}/10</span>
-                <span>Reported: {new Date(incident.pubMillis).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-            </div>
-         )}
+        <div className="flex justify-between items-start">
+          <h3 className="text-gray-900 font-semibold truncate pr-2">{readableSubtype}</h3>
+          {incident.status !== IncidentStatus.NEW && (
+            <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full ${statusColor}`}>
+              {incident.status}
+            </span>
+          )}
+        </div>
+        <p className="text-gray-500 text-sm truncate mt-0.5">
+          {incident.street || 'Unknown Street'}, {incident.city}
+        </p>
+
+        {!compact && (
+          <div className="mt-4 flex items-center justify-between text-xs text-gray-400">
+            <span>Reliability Score: {incident.reliability}/10</span>
+            <span>Reported: {new Date(incident.pubMillis).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
+        )}
       </div>
 
       {compact && (
         <div className="flex flex-col items-end gap-1 flex-shrink-0">
-             <div className="flex items-center gap-1">
-                <span className="text-xs font-medium text-gray-400">Reliability Score</span>
-                <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${incident.reliability && incident.reliability > 7 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
-                    {incident.reliability || '-'}
-                </span>
-             </div>
-             <span className="text-xs text-gray-400">
-                Reported: {new Date(incident.pubMillis).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-             </span>
+          <div className="flex items-center gap-1">
+            <span className="text-xs font-medium text-gray-400">Reliability Score</span>
+            <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${incident.reliability && incident.reliability > 7 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+              {incident.reliability || '-'}
+            </span>
+          </div>
+          <span className="text-xs text-gray-400">
+            Reported: {new Date(incident.pubMillis).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </span>
         </div>
       )}
     </div>
