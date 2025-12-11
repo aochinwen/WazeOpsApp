@@ -483,7 +483,7 @@ function App() {
                     try {
                       const response = await fetch('/api/notify', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'x-api-key': 'secret123' },
+                        headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.NOTIFY_KEY || 'secret123' },
                         body: JSON.stringify({
                           alertSlug: 'road_incident',
                           message: '⚠️ <b>TEST ALERT</b>\n\nThis is a mock alert triggered from the frontend.\n<a href="http://localhost:3000/detail/mock-incident-123">View Details</a>',
