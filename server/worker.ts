@@ -170,7 +170,7 @@ class WazeMonitor {
     const street = alert.street || "Unknown Street";
     const city = alert.city || "Unknown City";
     // NOTE: This links to the Frontend (3000), not the backend
-    const detailsUrl = `${FRONTEND_URL}/detail/${alert.uuid}`;
+    const detailsUrl = `${FRONTEND_URL}/#/detail/${alert.uuid}`;
 
     const message = `⚠️ <b>${subtype}</b>\n\nDetected on ${street}, ${city}.\nSource: ${sourceName}\n<a href="${detailsUrl}">View Details</a>`;
 
