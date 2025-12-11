@@ -1,0 +1,5 @@
+{
+  "name": "WazeOps Manager",
+  "description": "A comprehensive incident management dashboard integrating Waze live traffic data. Features automated incident categorization, reliability scoring, and direct WhatsApp team dispatch capabilities.",
+  "requestFramePermissions": []
+}
