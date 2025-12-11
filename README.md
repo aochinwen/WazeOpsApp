@@ -8,7 +8,22 @@ This contains everything you need to run your app locally.
 
 View your app in AI Studio: https://ai.studio/apps/drive/1g_bJqNSZxO_ZuhDAxtITP1NvR3aLjyF9
 
-## Run Locally
+### Environment Setup
+
+1.  Copy the example environment file:
+    ```bash
+    cp .env.example .env.local
+    ```
+2.  Open `.env.local` and configure the following variables:
+
+    **Required:**
+    *   `GEMINI_API_KEY`: Your Google Gemini API key (get one [here](https://aistudio.google.com/)).
+    *   `API_KEY`: A shared secret key for securing the notification endpoint.
+
+    **Optional:**
+    *   `FRONTEND_URL`: URL of the deployed frontend (e.g., your GitHub Pages URL). Used by the backend to generate details links. Defaults to `http://localhost:3000`.
+    *   `VITE_BACKEND_URL`: URL of the backend service. Defaults to `http://localhost:3001`.
+    *   `NOTIFY_URL`: URL of the downstream notification service. Note that the notification service is sent separately to another service. Defaults to `http://localhost:3002/api/notify`.
 
 ### Frontend Application
 
@@ -16,7 +31,7 @@ View your app in AI Studio: https://ai.studio/apps/drive/1g_bJqNSZxO_ZuhDAxtITP1
    ```bash
    npm install
    ```
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+2. Ensure you have set up your `.env.local` as described above.
 3. Run the app:
    ```bash
    npm run dev
@@ -51,10 +66,16 @@ The frontend can be hosted on GitHub Pages, but it requires a public backend URL
     ```
     Note the URL (e.g., `https://your-tunnel.loca.lt`) and the password.
 
+
 2.  **Deploy**:
-    Run the following command (replace the URL with your actual tunnel URL):
+    Run the following command (replace the URL with your actual backend URL, e.g., tunnel or Lambda):
     ```bash
+    # If using Tunnel:
     export VITE_BACKEND_URL="https://your-tunnel.loca.lt"
+    
+    # If using Lambda Function URL:
+    export VITE_BACKEND_URL="https://your-lambda-url.lambda-url.region.on.aws"
+    
     npm run deploy
     ```
 3.  **Access**: Visit `https://your-username.github.io/WazeOpsApp/`.
