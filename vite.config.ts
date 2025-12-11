@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   return {
+    base: '/WazeOpsApp/', // Required for GitHub Pages
     server: {
       port: 3000,
       host: '0.0.0.0',
@@ -26,7 +27,8 @@ export default defineConfig(({ mode }) => {
     define: {
       'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      'process.env.NOTIFY_KEY': JSON.stringify(env.API_KEY || "secret123")
+      'process.env.NOTIFY_KEY': JSON.stringify(env.API_KEY || "secret123"),
+      'process.env.BACKEND_URL': JSON.stringify(env.VITE_BACKEND_URL || "")
     },
     resolve: {
       alias: {

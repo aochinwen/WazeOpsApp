@@ -11,7 +11,7 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename="/WazeOpsApp">
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/detail/:incidentId" element={<App />} />

@@ -481,7 +481,7 @@ function App() {
                 <button
                   onClick={async () => {
                     try {
-                      const response = await fetch('/api/notify', {
+                      const response = await fetch(`${process.env.BACKEND_URL || ''}/api/notify`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.NOTIFY_KEY || 'secret123' },
                         body: JSON.stringify({

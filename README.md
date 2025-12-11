@@ -39,3 +39,24 @@ The backend worker runs separately to check for Waze incidents and send notifica
    ```bash
    npm run dev
    ```
+
+## Deployment
+
+### GitHub Pages (Frontend Only)
+The frontend can be hosted on GitHub Pages, but it requires a public backend URL (e.g., via Tunnel).
+
+1.  **Start Backend Tunnel**:
+    ```bash
+    npx localtunnel --port 3001
+    ```
+    Note the URL (e.g., `https://your-tunnel.loca.lt`) and the password.
+
+2.  **Deploy**:
+    Run the following command (replace the URL with your actual tunnel URL):
+    ```bash
+    export VITE_BACKEND_URL="https://your-tunnel.loca.lt"
+    npm run deploy
+    ```
+3.  **Access**: Visit `https://your-username.github.io/WazeOpsApp/`.
+
+*Note: You may need to visit the tunnel URL once in your browser to enter the tunnel password before the app can connect.*
