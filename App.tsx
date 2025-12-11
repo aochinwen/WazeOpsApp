@@ -231,10 +231,30 @@ function App() {
 
   // Handle URL Routing for specific incident
   useEffect(() => {
-    if (incidentId && incidents.length > 0) {
-      const found = incidents.find(i => i.uuid === incidentId);
-      if (found) {
-        setSelectedIncident(found);
+    if (incidentId) {
+      if (incidentId === 'mock-incident-123') {
+        // Create a temporary mock incident for testing
+        const mockIncident: ManagedIncident = {
+          uuid: 'mock-incident-123',
+          type: 'ACCIDENT',
+          subtype: 'ACCIDENT_MAJOR',
+          street: 'Test Highway 1',
+          city: 'Singapore',
+          location: { x: 103.8198, y: 1.3521 },
+          reportRating: 5,
+          reliability: 10,
+          nThumbsUp: 5,
+          confidence: 10,
+          pubMillis: Date.now(),
+          status: IncidentStatus.NEW,
+          reportDescription: "This is a simulated accident for testing purposes."
+        };
+        setSelectedIncident(mockIncident);
+      } else if (incidents.length > 0) {
+        const found = incidents.find(i => i.uuid === incidentId);
+        if (found) {
+          setSelectedIncident(found);
+        }
       }
     }
   }, [incidentId, incidents]);
@@ -486,7 +506,7 @@ function App() {
                         headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.NOTIFY_KEY || 'secret123' },
                         body: JSON.stringify({
                           alertSlug: 'road_incident',
-                          message: '⚠️ <b>TEST ALERT</b>\n\nThis is a mock alert triggered from the frontend.\n<a href="http://localhost:3000/detail/mock-incident-123">View Details</a>',
+                          message: `⚠️ <b>TEST ALERT</b>\n\nThis is a mock alert triggered from the frontend.\n<a href="${process.env.FRONTEND_URL || window.location.origin + import.meta.env.BASE_URL}detail/mock-incident-123">View Details</a>`,
                           parseMode: 'HTML'
                         })
                       });
