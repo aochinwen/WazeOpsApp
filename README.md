@@ -72,9 +72,11 @@ The frontend can be hosted on GitHub Pages, but it requires a public backend URL
     ```bash
     # If using Tunnel:
     export VITE_BACKEND_URL="https://your-tunnel.loca.lt"
+    export FRONTEND_URL="https://your-username.github.io/WazeOpsApp"
     
     # If using Lambda Function URL:
     export VITE_BACKEND_URL="https://your-lambda-url.lambda-url.region.on.aws"
+    export FRONTEND_URL="https://your-username.github.io/WazeOpsApp"
     
     npm run deploy
     ```
