@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { AlertTriangle, RefreshCw, Search, ListFilter, LayoutDashboard, Map as MapIcon, Sparkles, Rss, Layers } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { fetchWazeIncidents, fetchTrafficView } from './services/wazeService';
@@ -15,6 +15,7 @@ import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
 
 function App() {
   const { incidentId } = useParams();
+  const location = useLocation();
   const [incidents, setIncidents] = useState<ManagedIncident[]>([]);
   const [trafficData, setTrafficData] = useState<WazeTrafficJam[]>([]);
   const [showTraffic, setShowTraffic] = useState(false);
@@ -231,6 +232,16 @@ function App() {
 
   // Handle URL Routing for specific incident
   useEffect(() => {
+    // Check for source parameter in URL
+    const searchParams = new URLSearchParams(location.search);
+    const sourceId = searchParams.get('source');
+
+    // If source provided and different from active, switch feed first
+    if (sourceId && sourceId !== activeFeedId && FEED_SOURCES.some(s => s.id === sourceId)) {
+      setActiveFeedId(sourceId);
+      return; // Wait for feed to load
+    }
+
     if (incidentId) {
       if (incidentId === 'mock-incident-123') {
         // Create a temporary mock incident for testing
@@ -257,7 +268,7 @@ function App() {
         }
       }
     }
-  }, [incidentId, incidents]);
+  }, [incidentId, incidents, location.search]);
 
   const handleUpdateStatus = (id: string, newStatus: IncidentStatus) => {
     setIncidents(prev => prev.map(inc => inc.uuid === id ? { ...inc, status: newStatus } : inc));
@@ -500,13 +511,14 @@ function App() {
                 </p>
                 <button
                   onClick={async () => {
+                    const currentSource = FEED_SOURCES.find(s => s.id === activeFeedId) || FEED_SOURCES[0];
                     try {
                       const response = await fetch(`${process.env.BACKEND_URL || ''}/api/notify`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.NOTIFY_KEY || 'secret123' },
                         body: JSON.stringify({
                           alertSlug: 'road_incident',
-                          message: `⚠️ <b>TEST ALERT</b>\n\nThis is a mock alert triggered from the frontend.\n<a href="${window.location.origin}${import.meta.env.BASE_URL}#/detail/mock-incident-123">View Details</a>`,
+                          message: `⚠️ <b>TEST ALERT</b>\n\nThis is a mock alert triggered from the frontend.\nSource: ${currentSource.name}\n<a href="${window.location.origin}${import.meta.env.BASE_URL}#/detail/mock-incident-123?source=${currentSource.id}">View Details</a>`,
                           parseMode: 'HTML'
                         })
                       });

@@ -17,14 +17,21 @@ const PORT = 3001; // Backend runs on 3001
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 // Define Feed Sources
 const FEED_SOURCES = [
-  { name: 'West Area', url: "https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/b9eb1444-6cef-4cbd-b681-2937ad70dc9c?format=1" },
-  { name: 'Thomson Road', url: "https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/e0c6ef0a-aae0-4e8f-986b-65fb02a5e5a9?format=1" }
+  { id: 'west', name: 'West Area', url: "https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/b9eb1444-6cef-4cbd-b681-2937ad70dc9c?format=1" },
+  { id: 'thomson', name: 'Thomson Road', url: "https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/e0c6ef0a-aae0-4e8f-986b-65fb02a5e5a9?format=1" }
 ];
 const API_KEY = process.env.API_KEY;
 const NOTIFY_URL = process.env.NOTIFY_URL || "http://localhost:3002/api/notify";
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    "http://localhost:3000",
+    "https://aochinwen.github.io",
+    "https://aochinwen.github.io/WazeOpsApp"
+  ],
+  credentials: true
+}));
 app.use(bodyParser.json());
 
 // --- API Endpoints ---
@@ -103,7 +110,7 @@ class WazeMonitor {
 
   public start() {
     // Schedule task to run every 5 minutes
-    cron.schedule('*/5 * * * *', () => {
+    cron.schedule('*/2 * * * *', () => {
       this.checkAllFeeds();
     });
     // Run immediately
@@ -117,7 +124,7 @@ class WazeMonitor {
     for (const source of FEED_SOURCES) {
       try {
         const incidents = await this.fetchFeed(source.url);
-        await this.processFeedAlerts(incidents, source.name);
+        await this.processFeedAlerts(incidents, source);
         allAlerts = [...allAlerts, ...incidents];
       } catch (e: any) {
         console.error(`[WazeMonitor] Failed to fetch ${source.name}: ${e.message}`);
@@ -136,23 +143,23 @@ class WazeMonitor {
     return response.data.alerts || [];
   }
 
-  private async processFeedAlerts(alerts: WazeRawAlert[], sourceName: string) {
+  private async processFeedAlerts(alerts: WazeRawAlert[], source: { id: string, name: string }) {
     if (this.isFirstRun) {
       alerts.forEach(alert => this.seenIncidents.add(alert.uuid));
-      console.log(`[WazeMonitor] [${sourceName}] First run. Cached ${alerts.length} existing incidents.`);
+      console.log(`[WazeMonitor] [${source.name}] First run. Cached ${alerts.length} existing incidents.`);
       return;
     }
 
     const newAlerts = alerts.filter(alert => !this.seenIncidents.has(alert.uuid));
 
     if (newAlerts.length > 0) {
-      console.log(`[WazeMonitor] [${sourceName}] Found ${newAlerts.length} new incidents.`);
+      console.log(`[WazeMonitor] [${source.name}] Found ${newAlerts.length} new incidents.`);
       for (const alert of newAlerts) {
         this.seenIncidents.add(alert.uuid);
-        await this.sendNotification(alert, sourceName);
+        await this.sendNotification(alert, source);
       }
     } else {
-      console.log(`[WazeMonitor] [${sourceName}] No new incidents.`);
+      console.log(`[WazeMonitor] [${source.name}] No new incidents.`);
     }
   }
 
@@ -165,14 +172,14 @@ class WazeMonitor {
     }
   }
 
-  private async sendNotification(alert: WazeRawAlert, sourceName: string) {
+  private async sendNotification(alert: WazeRawAlert, source: { id: string, name: string }) {
     const subtype = alert.subtype || alert.type;
     const street = alert.street || "Unknown Street";
     const city = alert.city || "Unknown City";
-    // NOTE: This links to the Frontend (3000), not the backend
-    const detailsUrl = `${FRONTEND_URL}/#/detail/${alert.uuid}`;
+    // NOTE: Link includes hash routing and source parameter
+    const detailsUrl = `${FRONTEND_URL}/#/detail/${alert.uuid}?source=${source.id}`;
 
-    const message = `⚠️ <b>${subtype}</b>\n\nDetected on ${street}, ${city}.\nSource: ${sourceName}\n<a href="${detailsUrl}">View Details</a>`;
+    const message = `⚠️ <b>${subtype}</b>\n\nDetected on ${street}, ${city}.\nSource: ${source.name}\n<a href="${detailsUrl}">View Details</a>`;
 
     try {
       // The worker calls the API on the LOCAL server port directly
