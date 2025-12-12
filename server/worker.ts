@@ -181,10 +181,15 @@ class WazeMonitor {
 
     const message = `⚠️ <b>${subtype}</b>\n\nDetected on ${street}, ${city}.\nSource: ${source.name}\n<a href="${detailsUrl}">View Details</a>`;
 
+    // Determine slug based on source ID
+    let slug = 'road_incident';
+    if (source.id === 'thomson') slug = 'Thompson_Road';
+    if (source.id === 'west') slug = 'West_Region';
+
     try {
       // The worker calls the API on the LOCAL server port directly
       await axios.post(this.notifyUrl, {
-        alertSlug: 'road_incident',
+        alertSlug: slug,
         message: message,
         parseMode: 'HTML'
       }, {
