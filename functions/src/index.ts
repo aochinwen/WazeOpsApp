@@ -258,41 +258,39 @@ exports.monitor = functions
         // 2. Check LTA
         const ltaAlerts = await fetchLtaData();
 
-        // Deduplication: Fetch currently active alerts from the Notification Service
-        // This prevents re-sending the same alert if it's already active/sent.
-        try {
-            const activeResponse = await axios.get(ALERTS_URL, { headers: { 'x-api-key': API_KEY } });
-            const activeAlerts: any[] = activeResponse.data || [];
+        // Deduplication: Use Firestore to track sent UUIDs
+        const db = admin.firestore();
+        const sentRef = db.collection('sent_lta_notifications');
 
-            // Extract UUIDs from active alert messages (looking for the detail link)
-            // Pattern: #/detail/lta-md5hash?source=LTA_Traffic
-            const activeUuids = new Set<string>();
-            activeAlerts.forEach(a => {
-                if (a.message && typeof a.message === 'string') {
-                    const match = a.message.match(/\/detail\/([a-zA-Z0-9-]+)\?/);
-                    if (match && match[1]) {
-                        activeUuids.add(match[1]);
-                    }
+        let sentCount = 0;
+
+        for (const alert of ltaAlerts) {
+            const docRef = sentRef.doc(alert.uuid);
+
+            try {
+                const doc = await docRef.get();
+                if (doc.exists) {
+                    // Already sent
+                    continue;
                 }
-            });
 
-            console.log(`[LTA] Found ${ltaAlerts.length} total. Active UUIDs in system: ${activeUuids.size}`);
-
-            const newLtaAlerts = ltaAlerts.filter(alert => !activeUuids.has(alert.uuid));
-
-            console.log(`[LTA] sending ${newLtaAlerts.length} new/unique alerts.`);
-
-            for (const alert of newLtaAlerts) {
+                // If not sent, send it now
                 await sendNotification(alert, "Singapore LTA", "LTA_Traffic");
-            }
 
-        } catch (e: any) {
-            console.error("Failed to fetch active alerts for deduplication. Fallback to limit 5.", e.message);
-            // Fallback: just send top 5 if we can't check history
-            for (const alert of ltaAlerts.slice(0, 5)) {
-                await sendNotification(alert, "Singapore LTA", "LTA_Traffic");
+                // Mark as sent in Firestore with a timestamp
+                await docRef.set({
+                    sentAt: admin.firestore.FieldValue.serverTimestamp(),
+                    message: alert.reportDescription || ""
+                });
+
+                sentCount++;
+
+            } catch (e: any) {
+                console.error(`Firestore Check Error for ${alert.uuid}:`, e.message);
             }
         }
+
+        console.log(`[LTA] Processed ${ltaAlerts.length} alerts. Sent ${sentCount} new notifications.`);
 
         return null;
     });
