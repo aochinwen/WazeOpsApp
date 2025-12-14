@@ -1,0 +1,1 @@
+import axios from 'axios'; const url = 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/b9eb1444-6cef-4cbd-b681-2937ad70dc9c?format=1'; axios.get(url).then(r => console.log('Jams count:', r.data.jams?.length || 0)).catch(e => console.error(e));
