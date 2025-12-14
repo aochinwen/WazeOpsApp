@@ -5,23 +5,29 @@ import { TriangleAlert, Car, Construction, Ban, AlertCircle, Zap } from 'lucide-
 export const WAZE_FEED_URL = "https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/b9eb1444-6cef-4cbd-b681-2937ad70dc9c?format=1";
 
 export const FEED_SOURCES = [
-  { 
-    id: 'west', 
-    name: 'West Area', 
+  {
+    id: 'west',
+    name: 'West Area',
     url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/b9eb1444-6cef-4cbd-b681-2937ad70dc9c?format=1',
     tvtUrl: 'https://www.waze.com/row-partnerhub-api/feeds-tvt/?id=18552697387'
   },
-  { 
-    id: 'thomson', 
-    name: 'Thomson Road', 
+  {
+    id: 'thomson',
+    name: 'Thomson Road',
     url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/e0c6ef0a-aae0-4e8f-986b-65fb02a5e5a9?format=1',
     tvtUrl: 'https://www.waze.com/row-partnerhub-api/feeds-tvt/?id=1764829291980'
   },
-  { 
-    id: 'custom', 
-    name: 'Custom URL', 
+  {
+    id: 'custom',
+    name: 'Custom URL',
     url: '',
     tvtUrl: 'https://www.waze.com/row-partnerhub-api/feeds-tvt/?id=1724377558927'
+  },
+  {
+    id: 'lta',
+    name: 'Singapore LTA',
+    url: '/api/feed/lta',
+    tvtUrl: ''
   },
 ];
 
@@ -120,7 +126,7 @@ export const DEMO_ALERTS = [
     nThumbsUp: 1,
     pubMillis: Date.now() - 1000 * 60 * 45
   },
-   {
+  {
     uuid: "demo-3",
     type: "ROAD_CLOSED",
     subtype: "ROAD_CLOSED_EVENT",

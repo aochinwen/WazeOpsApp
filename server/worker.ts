@@ -116,6 +116,7 @@ class WazeMonitor {
     console.log(`[WazeMonitor] Checking all feeds...`);
     let allAlerts: WazeRawAlert[] = [];
 
+    // 1. Standard Waze Feeds
     for (const source of FEED_SOURCES) {
       try {
         const incidents = await this.fetchFeed(source.url);
@@ -123,6 +124,18 @@ class WazeMonitor {
         allAlerts = [...allAlerts, ...incidents];
       } catch (e: any) {
         console.error(`[WazeMonitor] Failed to fetch ${source.name}: ${e.message}`);
+      }
+    }
+
+    // 2. LTA DataMall Feed
+    if (process.env.DATAMALL_API_KEY) {
+      try {
+        const ltaAlerts = await fetchLtaData();
+        const ltaSource = { id: 'lta', name: 'Singapore LTA' };
+        await this.processFeedAlerts(ltaAlerts, ltaSource);
+        allAlerts = [...allAlerts, ...ltaAlerts];
+      } catch (e: any) {
+        console.error(`[WazeMonitor] Failed to fetch LTA: ${e.message}`);
       }
     }
 
@@ -222,6 +235,9 @@ async function startServer() {
           const notifyUrlSecret = await client.secrets().getSecret({ secretName: "NOTIFY_URL", projectId, environment: env });
           if (notifyUrlSecret) NOTIFY_URL = notifyUrlSecret.secretValue;
 
+          const ltaKeySecret = await client.secrets().getSecret({ secretName: "DATAMALL_API_KEY", projectId, environment: env });
+          if (ltaKeySecret) process.env.DATAMALL_API_KEY = ltaKeySecret.secretValue;
+
           console.log("Secrets loaded from Infisical.");
         } catch (err: any) {
           console.error("Failed to fetch secrets from Infisical:", err.message);
@@ -255,3 +271,70 @@ async function startServer() {
 }
 
 startServer();
+
+// --- LTA Service Integration ---
+import crypto from 'crypto';
+
+interface LtaIncident {
+  Type: string;
+  Latitude: number;
+  Longitude: number;
+  Message: string;
+}
+
+const mapLtaTypeToWaze = (ltaType: string): { type: string, subtype: string } => {
+  const t = ltaType.toLowerCase();
+  if (t.includes('accident')) return { type: 'ACCIDENT', subtype: 'ACCIDENT_Major' }; // Default to major to be safe
+  if (t.includes('roadwork')) return { type: 'CONSTRUCTION', subtype: 'CONSTRUCTION' };
+  if (t.includes('breakdown')) return { type: 'HAZARD', subtype: 'HAZARD_ON_SHOULDER_CAR_STOPPED' };
+  if (t.includes('weather')) return { type: 'WEATHERHAZARD', subtype: 'HAZARD_WEATHER' };
+  if (t.includes('heavy traffic')) return { type: 'JAM', subtype: 'JAM_HEAVY_TRAFFIC' };
+  if (t.includes('obstacle') || t.includes('road block')) return { type: 'HAZARD', subtype: 'HAZARD_ON_ROAD' };
+  return { type: 'HAZARD', subtype: 'HAZARD_ON_ROAD' };
+};
+
+const fetchLtaData = async (): Promise<WazeRawAlert[]> => {
+  const ltaKey = process.env.DATAMALL_API_KEY;
+  if (!ltaKey) {
+    console.warn("DATAMALL_API_KEY missing. Skipping LTA fetch.");
+    return [];
+  }
+
+  try {
+    const response = await axios.get('https://datamall2.mytransport.sg/ltaodataservice/TrafficIncidents', {
+      headers: { 'AccountKey': ltaKey }
+    });
+
+    const ltaItems: LtaIncident[] = response.data.value || [];
+
+    return ltaItems.map(item => {
+      const { type, subtype } = mapLtaTypeToWaze(item.Type);
+      // Generate ID based on message content to keep it stable across polls if message is identical
+      const uuid = crypto.createHash('md5').update(item.Message).digest('hex');
+
+      return {
+        uuid: `lta-${uuid}`,
+        type,
+        subtype,
+        street: 'Singapore Road', // LTA data puts street in message. Parsing is complex.
+        city: 'Singapore',
+        location: { x: item.Longitude, y: item.Latitude },
+        pubMillis: Date.now(), // Real-time feed
+        reportDescription: item.Message
+      };
+    });
+  } catch (error: any) {
+    console.error("Error fetching LTA data:", error.message);
+    return [];
+  }
+};
+
+// GET /api/feed/lta
+app.get('/api/feed/lta', async (req, res) => {
+  try {
+    const alerts = await fetchLtaData();
+    res.json({ alerts });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch LTA data" });
+  }
+});
