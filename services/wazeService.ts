@@ -10,7 +10,15 @@ const fetchWithProxy = async (targetUrl: string) => {
 
   // If URL is relative (our own backend) or local, skip the proxy
   if (targetUrl.startsWith('/') || targetUrl.includes('localhost')) {
-    const response = await fetch(urlWithTime, { headers: { 'Accept': 'application/json' } });
+    // Prepend configured BACKEND_URL for relative paths
+    const backend = process.env.BACKEND_URL || 'http://localhost:3001';
+    const fullUrl = targetUrl.startsWith('/') ? `${backend}${targetUrl}` : targetUrl;
+
+    // Re-append timestamp to the full URL
+    const separator = fullUrl.includes('?') ? '&' : '?';
+    const finalUrl = `${fullUrl}${separator}t=${new Date().getTime()}`;
+
+    const response = await fetch(finalUrl, { headers: { 'Accept': 'application/json' } });
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     return response.json();
   }
