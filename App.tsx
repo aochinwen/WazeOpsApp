@@ -523,7 +523,7 @@ function App() {
                         headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.NOTIFY_KEY || 'secret123' },
                         body: JSON.stringify({
                           alertSlug: slug,
-                          message: `⚠️ <b>TEST ALERT</b>\n\nThis is a mock alert triggered from the frontend.\nSource: ${currentSource.name}\n<a href="${window.location.origin}${import.meta.env.BASE_URL}#/detail/mock-incident-123?source=${currentSource.id}">View Details</a>`,
+                          message: `⚠️ <b>TEST ALERT</b>\n\nThis is a mock alert triggered from the frontend.\nSource: ${currentSource.name}\n<a href="${process.env.FRONTEND_URL || window.location.origin}${import.meta.env.BASE_URL}#/detail/mock-incident-123?source=${currentSource.id}">View Details</a>`,
                           parseMode: 'HTML'
                         })
                       });

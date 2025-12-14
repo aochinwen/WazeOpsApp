@@ -7,6 +7,7 @@ import axios from 'axios';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { InfisicalSDK } from '@infisical/sdk';
 
 // Environment Setup
 dotenv.config({ path: path.resolve(fileURLToPath(import.meta.url), '../../.env.local') });
@@ -20,8 +21,9 @@ const FEED_SOURCES = [
   { id: 'west', name: 'West Area', url: "https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/b9eb1444-6cef-4cbd-b681-2937ad70dc9c?format=1" },
   { id: 'thomson', name: 'Thomson Road', url: "https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/e0c6ef0a-aae0-4e8f-986b-65fb02a5e5a9?format=1" }
 ];
-const API_KEY = process.env.API_KEY;
-const NOTIFY_URL = process.env.NOTIFY_URL || "http://localhost:3002/api/notify";
+
+let API_KEY = process.env.API_KEY;
+let NOTIFY_URL = process.env.NOTIFY_URL || "http://localhost:3002/api/notify";
 
 // Middleware
 app.use(cors({
@@ -72,13 +74,6 @@ app.post('/api/notify', async (req, res) => {
     return res.status(502).json({ error: 'Bad Gateway', message: 'Failed to forward notification to downstream service' });
   }
 });
-
-// Start Server
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.log(`Forwarding notifications to ${NOTIFY_URL}`);
-});
-
 
 // --- Waze Worker Logic ---
 // We keep this in the same process for simplicity
@@ -205,6 +200,58 @@ class WazeMonitor {
   }
 }
 
-// Start Monitor
-const monitor = new WazeMonitor(NOTIFY_URL);
-monitor.start();
+// Start Server Logic
+async function startServer() {
+  if (process.env.INFISICAL_CLIENT_ID && process.env.INFISICAL_CLIENT_SECRET) {
+    console.log("Infisical credentials found. Initializing SDK...");
+    try {
+      const client = new InfisicalSDK();
+      await client.auth().universalAuth.login({
+        clientId: process.env.INFISICAL_CLIENT_ID,
+        clientSecret: process.env.INFISICAL_CLIENT_SECRET
+      });
+      console.log("Infisical authenticated.");
+
+      const projectId = process.env.INFISICAL_PROJECT_ID;
+      if (projectId) {
+        const env = process.env.INFISICAL_ENVIRONMENT || 'dev';
+        try {
+          const apiKeySecret = await client.secrets().getSecret({ secretName: "API_KEY", projectId, environment: env });
+          if (apiKeySecret) API_KEY = apiKeySecret.secretValue;
+
+          const notifyUrlSecret = await client.secrets().getSecret({ secretName: "NOTIFY_URL", projectId, environment: env });
+          if (notifyUrlSecret) NOTIFY_URL = notifyUrlSecret.secretValue;
+
+          console.log("Secrets loaded from Infisical.");
+        } catch (err: any) {
+          console.error("Failed to fetch secrets from Infisical:", err.message);
+        }
+      } else {
+        console.warn("INFISICAL_PROJECT_ID not set. Skipping secret fetch.");
+      }
+
+    } catch (err: any) {
+      console.error("Failed to authenticate with Infisical:", err.message);
+    }
+  } else {
+    console.log("Infisical credentials not found. Using local env.");
+  }
+
+  // Verify critical config
+  if (!API_KEY) {
+    console.error("CRITICAL: API_KEY is missing!");
+    // process.exit(1); // Optional: Fail fast? For now, let it run but it won't auth.
+  }
+
+  // Start Server
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Forwarding notifications to ${NOTIFY_URL}`);
+  });
+
+  // Start Monitor
+  const monitor = new WazeMonitor(NOTIFY_URL);
+  monitor.start();
+}
+
+startServer();
