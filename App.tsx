@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
-import { AlertTriangle, RefreshCw, Search, ListFilter, LayoutDashboard, Map as MapIcon, Sparkles, Rss, Layers } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Search, ListFilter, LayoutDashboard, Map as MapIcon, Sparkles, Rss, Layers, Camera } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
-import { fetchWazeIncidents, fetchTrafficView } from './services/wazeService';
+import { fetchWazeIncidents, fetchTrafficView, fetchTrafficCameras } from './services/wazeService';
 import { ManagedIncident, IncidentStatus, FilterCategory, WazeTrafficJam } from './types';
 import { CATEGORY_CONFIG, SUBTYPE_MAPPING, DEMO_ALERTS, FEED_SOURCES } from './constants';
 import { IncidentModal } from './components/IncidentModal';
@@ -154,6 +154,53 @@ function App() {
       loadTrafficData();
     }
   }, [activeFeedId]);
+
+  // Camera State
+  const [showCameras, setShowCameras] = useState(false);
+  const [cameras, setCameras] = useState<any[]>([]);
+  const [loadingCameras, setLoadingCameras] = useState(false);
+
+  const loadCameras = async () => {
+    setLoadingCameras(true);
+    try {
+      const data = await fetchTrafficCameras();
+      setCameras(data);
+    } catch (e) {
+      console.error(e);
+      addToast("Failed to load traffic cameras", 'error');
+    } finally {
+      setLoadingCameras(false);
+    }
+  };
+
+  const toggleCameras = () => {
+    const newState = !showCameras;
+    setShowCameras(newState);
+    if (newState) {
+      loadCameras();
+    } else {
+      setCameras([]);
+    }
+  };
+
+  const refreshCamera = async (cameraId: string): Promise<string | null> => {
+    setLoadingCameras(true);
+    try {
+      // We fetch the full list again to get fresh signed URLs
+      // Optimization: In a real app we might have a specific endpoint for single camera refresh
+      const data = await fetchTrafficCameras();
+      setCameras(data);
+
+      const updated = data.find((c: any) => c.CameraID === cameraId);
+      return updated ? updated.ImageLink : null;
+    } catch (e) {
+      console.error(e);
+      addToast("Failed to refresh camera image", 'error');
+      return null;
+    } finally {
+      setLoadingCameras(false);
+    }
+  };
 
   const handleGenerateSummary = async () => {
     if (incidents.length === 0) {
@@ -408,18 +455,35 @@ function App() {
               </span>
 
               <div className="flex items-center gap-4 self-end sm:self-center">
-                {/* Traffic Toggle */}
-                <button
-                  onClick={toggleTrafficView}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-sm font-medium
-                         ${showTraffic
-                      ? 'bg-orange-50 border-orange-200 text-orange-700'
-                      : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}
-                     `}
-                >
-                  <Layers size={16} className={loadingTraffic ? 'animate-spin' : ''} />
-                  Traffic View {showTraffic ? 'On' : 'Off'}
-                </button>
+                {viewMode === 'MAP' && (
+                  <>
+                    <button
+                      onClick={toggleTrafficView}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-sm font-medium
+                            ${showTraffic
+                          ? 'bg-orange-50 border-orange-200 text-orange-700'
+                          : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}
+                        `}
+                    >
+                      <Layers size={16} className={loadingTraffic ? 'animate-spin' : ''} />
+                      Traffic View {showTraffic ? 'On' : 'Off'}
+                    </button>
+
+                    <button
+                      onClick={toggleCameras}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-sm font-medium
+                            ${showCameras
+                          ? 'bg-blue-50 border-blue-200 text-blue-700'
+                          : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}
+                        `}
+                    >
+                      <div className={`transition-transform ${loadingCameras ? 'animate-pulse' : ''}`}>
+                        <Camera size={16} />
+                      </div>
+                      Traffic Camera {showCameras ? 'On' : 'Off'}
+                    </button>
+                  </>
+                )}
 
                 {/* View Switcher */}
                 <div className="flex bg-gray-100 p-1 rounded-lg">
@@ -454,6 +518,8 @@ function App() {
                 incidents={filteredIncidents}
                 onSelect={setSelectedIncident}
                 trafficData={showTraffic ? trafficData : []}
+                cameras={showCameras ? cameras : []}
+                onRefreshCamera={refreshCamera}
               />
             ) : (
               <div className={`

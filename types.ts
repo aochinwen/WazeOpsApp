@@ -72,7 +72,7 @@ export interface TrafficViewResponse {
 }
 
 export interface TrafficRoute {
-  line: {x: number, y: number}[];
+  line: { x: number, y: number }[];
   jamLevel: number;
 }
 
@@ -88,3 +88,10 @@ export interface ManagedIncident extends WazeAlert {
 }
 
 export type FilterCategory = 'ALL' | 'ACCIDENT' | 'JAM' | 'HAZARD' | 'CONSTRUCTION' | 'ROAD_CLOSED';
+
+export interface TrafficCamera {
+  CameraID: string;
+  Latitude: number;
+  Longitude: number;
+  ImageLink: string;
+}

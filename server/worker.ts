@@ -338,3 +338,22 @@ app.get('/api/feed/lta', async (req, res) => {
     res.status(500).json({ error: "Failed to fetch LTA data" });
   }
 });
+
+// GET /api/cameras
+app.get('/api/cameras', async (req, res) => {
+  const ltaKey = process.env.DATAMALL_API_KEY;
+  if (!ltaKey) {
+    return res.status(500).json({ error: "DATAMALL_API_KEY not configured" });
+  }
+
+  try {
+    const response = await axios.get('https://datamall2.mytransport.sg/ltaodataservice/Traffic-Imagesv2', {
+      headers: { 'AccountKey': ltaKey }
+    });
+    const cameras = response.data.value || [];
+    res.json(cameras);
+  } catch (error: any) {
+    console.error("Error fetching cameras:", error.message);
+    res.status(502).json({ error: "Failed to fetch camera data" });
+  }
+});

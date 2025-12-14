@@ -1,5 +1,5 @@
 
-import { WazeFeedResponse, ManagedIncident, IncidentStatus, WazeRawAlert, WazeTrafficJam, TrafficViewResponse } from '../types';
+import { WazeFeedResponse, ManagedIncident, IncidentStatus, WazeRawAlert, WazeTrafficJam, TrafficViewResponse, TrafficCamera } from '../types';
 
 const PROXY_URL = 'https://corsproxy.io/?';
 
@@ -83,4 +83,19 @@ export const fetchTrafficView = async (tvtUrl: string): Promise<WazeTrafficJam[]
     roadType: item.roadType,
     pubMillis: item.pubMillis || Date.now(),
   }));
+};
+
+export const fetchTrafficCameras = async (): Promise<TrafficCamera[]> => {
+  const backend = process.env.BACKEND_URL || 'http://localhost:3001';
+  // Use backend URL directly for this API as it's our own endpoint
+  const url = `${backend}/api/cameras?t=${new Date().getTime()}`;
+
+  try {
+    const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching cameras:", error);
+    return [];
+  }
 };
