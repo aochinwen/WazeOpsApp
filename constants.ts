@@ -26,7 +26,7 @@ export const FEED_SOURCES = [
   {
     id: 'lta',
     name: 'Singapore LTA',
-    url: '/api/feed/lta',
+    url: '/feed/lta',
     tvtUrl: ''
   },
 ];

@@ -38,8 +38,8 @@ app.use(bodyParser.json());
 
 // --- API Endpoints ---
 
-// POST /api/notify
-app.post('/api/notify', async (req, res) => {
+// POST /notify
+app.post('/notify', async (req, res) => {
   const apiKey = req.headers['x-api-key'];
 
   if (apiKey !== API_KEY) {
@@ -329,8 +329,8 @@ const fetchLtaData = async (): Promise<WazeRawAlert[]> => {
   }
 };
 
-// GET /api/feed/lta
-app.get('/api/feed/lta', async (req, res) => {
+// GET /feed/lta
+app.get('/feed/lta', async (req, res) => {
   try {
     const alerts = await fetchLtaData();
     res.json({ alerts });
@@ -339,8 +339,8 @@ app.get('/api/feed/lta', async (req, res) => {
   }
 });
 
-// GET /api/cameras
-app.get('/api/cameras', async (req, res) => {
+// GET /cameras
+app.get('/cameras', async (req, res) => {
   const ltaKey = process.env.DATAMALL_API_KEY;
   if (!ltaKey) {
     return res.status(500).json({ error: "DATAMALL_API_KEY not configured" });

@@ -42,9 +42,7 @@ const fetchWithProxy = async (targetUrl: string) => {
 export const fetchWazeIncidents = async (feedUrl: string): Promise<ManagedIncident[]> => {
   const data: WazeFeedResponse = await fetchWithProxy(feedUrl);
 
-  if (!data.alerts) return [];
-
-  return data.alerts.map((alert: WazeRawAlert) => ({
+  const alerts: ManagedIncident[] = (data.alerts || []).map((alert: WazeRawAlert) => ({
     uuid: alert.uuid,
     type: alert.type,
     subtype: alert.subtype,
@@ -53,13 +51,32 @@ export const fetchWazeIncidents = async (feedUrl: string): Promise<ManagedIncide
     country: alert.country,
     location: alert.location,
     reportRating: alert.reportRating || 0,
-    reliability: alert.reliability || 5, // Default mid reliability if missing
+    reliability: alert.reliability || 5,
     nThumbsUp: alert.nThumbsUp || 0,
     confidence: alert.confidence || 0,
     reportDescription: alert.reportDescription,
     pubMillis: alert.pubMillis,
-    status: IncidentStatus.NEW, // Initial status for management app
+    status: IncidentStatus.NEW,
   }));
+
+  const jams: ManagedIncident[] = (data.jams || []).map((jam: any) => ({
+    uuid: jam.uuid?.toString() || jam.id?.toString(),
+    type: 'JAM',
+    subtype: jam.blockType === 'ROAD_CLOSED' ? 'ROAD_CLOSED_EVENT' : 'JAM_HEAVY_TRAFFIC',
+    street: jam.street,
+    city: jam.city,
+    country: jam.country,
+    location: (jam.line && jam.line.length > 0) ? jam.line[0] : { x: 0, y: 0 },
+    reportRating: 0,
+    reliability: 5,
+    nThumbsUp: 0,
+    confidence: 0,
+    reportDescription: `Traffic Jam detected. Level: ${jam.level}, Delay: ${jam.delay}s`,
+    pubMillis: jam.pubMillis || Date.now(),
+    status: IncidentStatus.NEW,
+  }));
+
+  return [...alerts, ...jams];
 };
 
 export const fetchTrafficView = async (tvtUrl: string): Promise<WazeTrafficJam[]> => {
@@ -88,7 +105,7 @@ export const fetchTrafficView = async (tvtUrl: string): Promise<WazeTrafficJam[]
 export const fetchTrafficCameras = async (): Promise<TrafficCamera[]> => {
   const backend = process.env.BACKEND_URL || 'http://localhost:3001';
   // Use backend URL directly for this API as it's our own endpoint
-  const url = `${backend}/api/cameras?t=${new Date().getTime()}`;
+  const url = `${backend}/cameras?t=${new Date().getTime()}`;
 
   try {
     const response = await fetch(url, { headers: { 'Accept': 'application/json' } });

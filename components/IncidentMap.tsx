@@ -322,57 +322,95 @@ export const IncidentMap: React.FC<IncidentMapProps> = ({ incidents, trafficData
     useEffect(() => {
         if (!map.current || mapError) return;
 
-        // Clear existing camera markers and unmount their popups
-        cameraMarkers.current.forEach(marker => {
-            const popup = marker.getPopup();
-            if (popup && popupRoots.current.has(popup)) {
-                popupRoots.current.get(popup).unmount();
-                popupRoots.current.delete(popup);
+        // Map existing markers by CameraID for efficient diffing
+        const existingMap = new Map();
+        // We attach the ID to the marker object itself for easy retrieval
+        cameraMarkers.current.forEach((marker: any) => {
+            if (marker._cameraId) {
+                existingMap.set(marker._cameraId, marker);
             }
-            marker.remove();
         });
-        cameraMarkers.current = [];
 
-        if (cameras.length === 0) return;
+        const newCameraIds = new Set(cameras.map(c => c.CameraID));
 
+        // 1. Remove markers that are no longer in the new list
+        cameraMarkers.current = cameraMarkers.current.filter((marker: any) => {
+            if (!newCameraIds.has(marker._cameraId)) {
+                // Unmount React popup
+                const popup = marker.getPopup();
+                if (popup && popupRoots.current.has(popup)) {
+                    popupRoots.current.get(popup).unmount();
+                    popupRoots.current.delete(popup);
+                }
+                marker.remove();
+                return false;
+            }
+            return true;
+        });
+
+        // 2. Add or Update markers
         cameras.forEach(camera => {
-            const el = document.createElement('div');
-            el.className = 'marker-camera';
+            let marker = existingMap.get(camera.CameraID);
 
-            const root = createRoot(el);
-            root.render(
-                <div
-                    className="p-1.5 rounded-full bg-white border border-gray-300 shadow-sm cursor-pointer hover:bg-gray-50 hover:scale-110 transition-transform text-gray-700"
-                    title={`Camera ${camera.CameraID}`}
-                >
-                    <Camera size={14} />
-                </div>
-            );
+            if (marker) {
+                // Marker exists. Verify if popup is open or needs update.
+                // We need to re-render the Popup content to ensure it has the latest 'camera' object
+                // (e.g. fresh ImageLink) AND the latest 'onRefreshCamera' callback.
+                const popup = marker.getPopup();
+                if (popup && popupRoots.current.has(popup)) {
+                    const root = popupRoots.current.get(popup);
+                    // Re-rendering the root with new props keeps the state (timers) intact where possible,
+                    // but crucially updates the props.
+                    root.render(
+                        <CameraPopup
+                            camera={camera}
+                            onRefresh={onRefreshCamera || (async () => null)}
+                        />
+                    );
+                }
+            } else {
+                // Create new marker
+                const el = document.createElement('div');
+                el.className = 'marker-camera';
 
-            const marker = new mapboxgl.Marker(el)
-                .setLngLat([camera.Longitude, camera.Latitude])
-                .addTo(map.current);
+                const root = createRoot(el);
+                root.render(
+                    <div
+                        className="p-1.5 rounded-full bg-white border border-gray-300 shadow-sm cursor-pointer hover:bg-gray-50 hover:scale-110 transition-transform text-gray-700"
+                        title={`Camera ${camera.CameraID}`}
+                    >
+                        <Camera size={14} />
+                    </div>
+                );
 
-            // React Popup Logic
-            const popupNode = document.createElement('div');
-            const popupRoot = createRoot(popupNode);
+                marker = new mapboxgl.Marker(el)
+                    .setLngLat([camera.Longitude, camera.Latitude])
+                    .addTo(map.current);
 
-            // We render the CameraPopup into this detached DOM node
-            popupRoot.render(
-                <CameraPopup
-                    camera={camera}
-                    onRefresh={onRefreshCamera || (async () => null)}
-                />
-            );
+                // Attach ID for tracking
+                marker._cameraId = camera.CameraID;
 
-            const popup = new mapboxgl.Popup({ offset: 25, maxWidth: '300px' })
-                .setDOMContent(popupNode);
+                // React Popup Logic
+                const popupNode = document.createElement('div');
+                const popupRoot = createRoot(popupNode);
 
-            // Track root for cleanup
-            popupRoots.current.set(popup, popupRoot);
+                // We render the CameraPopup into this detached DOM node
+                popupRoot.render(
+                    <CameraPopup
+                        camera={camera}
+                        onRefresh={onRefreshCamera || (async () => null)}
+                    />
+                );
 
-            marker.setPopup(popup);
-            cameraMarkers.current.push(marker);
+                const popup = new mapboxgl.Popup({ offset: 25, maxWidth: '300px' })
+                    .setDOMContent(popupNode);
+
+                // Track root for cleanup
+                popupRoots.current.set(popup, popupRoot);
+
+                marker.setPopup(popup);
+                cameraMarkers.current.push(marker);
+            }
         });
 
     }, [cameras, mapError, onRefreshCamera]);

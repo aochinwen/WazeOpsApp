@@ -19,14 +19,12 @@ View your app in AI Studio: https://ai.studio/apps/drive/1g_bJqNSZxO_ZuhDAxtITP1
     **Required:**
     *   `GEMINI_API_KEY`: Your Google Gemini API key (get one [here](https://aistudio.google.com/)).
     *   `API_KEY`: A shared secret key for securing the notification endpoint.
+    *   `VITE_BACKEND_URL`: URL of the deployed Firebase Cloud Functions (e.g., `https://us-central1-wazeops.cloudfunctions.net/api`).
 
-    **Optional:**
-    *   `FRONTEND_URL`: URL of the deployed frontend (e.g., your GitHub Pages URL). Used by the backend to generate details links. Defaults to `http://localhost:3000`.
-    *   `VITE_BACKEND_URL`: URL of the backend service. Defaults to `http://localhost:3001`.
-    *   `NOTIFY_URL`: URL of the downstream notification service. Note that the notification service is sent separately to another service. Defaults to `http://localhost:3002/api/notify`.
-    *   `INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET`: Infisical credentials for secret management (Optional, will fallback to local env).
-    *   `INFISICAL_PROJECT_ID`: Infisical Project ID.
-    *   `INFISICAL_ENVIRONMENT`: Infisical Environment (e.g. `dev`).
+    **Secret Management (Infisical):**
+    We use [Infisical](https://infisical.com/) to manage sensitive keys like `DATAMALL_API_KEY` for the backend.
+    *   Ideally, install the Infisical CLI and authenticate.
+    *   Alternatively, set `INFISICAL_CLIENT_ID` and `INFISICAL_CLIENT_SECRET` in `.env.local` or Firebase config.
 
 ### Frontend Application
 
@@ -34,55 +32,37 @@ View your app in AI Studio: https://ai.studio/apps/drive/1g_bJqNSZxO_ZuhDAxtITP1
    ```bash
    npm install
    ```
-2. Ensure you have set up your `.env.local` as described above.
-3. Run the app:
+2. Run the app locally:
    ```bash
    npm run dev
    ```
    The app will be available at http://localhost:3000
 
-### Backend Notification Service
+### Backend (Firebase Cloud Functions)
 
-The backend worker runs separately to check for Waze incidents and send notifications.
+The backend has been migrated to **Firebase Cloud Functions**. It handles Waze feed polling, LTA data fetching, and notifications.
 
-1. Navigate to the server directory:
-   ```bash
-   cd server
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the worker:
-   ```bash
-   npm run dev
-   ```
-
-## Deployment
-
-### GitHub Pages (Frontend Only)
-The frontend can be hosted on GitHub Pages, but it requires a public backend URL (e.g., via Tunnel).
-
-1.  **Start Backend Tunnel**:
+1.  **Deployment**:
     ```bash
-    npx localtunnel --port 3001
+    firebase deploy --only functions
     ```
-    Note the URL (e.g., `https://your-tunnel.loca.lt`) and the password.
-
-
-2.  **Deploy**:
-    Run the following command (replace the URL with your actual backend URL, e.g., tunnel or Lambda):
+2.  **Configuration**:
+    Secrets are managed via Infisical and Firebase Secret Manager.
+    To update secrets:
     ```bash
-    # If using Tunnel:
-    export VITE_BACKEND_URL="https://your-tunnel.loca.lt"
-    export FRONTEND_URL="https://your-username.github.io/WazeOpsApp"
-    
-    # If using Lambda Function URL:
-    export VITE_BACKEND_URL="https://your-lambda-url.lambda-url.region.on.aws"
-    export FRONTEND_URL="https://your-username.github.io/WazeOpsApp"
-    
+    firebase functions:secrets:set INFISICAL
+    ```
+
+### Deployment
+
+**Frontend (GitHub Pages):**
+The frontend is hosted on GitHub Pages and connects to the Firebase backend.
+
+1.  **Build & Deploy**:
+    ```bash
     npm run deploy
     ```
-3.  **Access**: Visit `https://your-username.github.io/WazeOpsApp/`.
+    This command builds the app (using the configured `VITE_BACKEND_URL`) and pushes to the `gh-pages` branch.
 
-*Note: You may need to visit the tunnel URL once in your browser to enter the tunnel password before the app can connect.*
+2.  **Access**: Visit `https://aochinwen.github.io/WazeOpsApp/`.
+
