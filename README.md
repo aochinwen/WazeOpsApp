@@ -24,6 +24,9 @@ View your app in AI Studio: https://ai.studio/apps/drive/1g_bJqNSZxO_ZuhDAxtITP1
     *   `FRONTEND_URL`: URL of the deployed frontend (e.g., your GitHub Pages URL). Used by the backend to generate details links. Defaults to `http://localhost:3000`.
     *   `VITE_BACKEND_URL`: URL of the backend service. Defaults to `http://localhost:3001`.
     *   `NOTIFY_URL`: URL of the downstream notification service. Note that the notification service is sent separately to another service. Defaults to `http://localhost:3002/api/notify`.
+    *   `INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET`: Infisical credentials for secret management (Optional, will fallback to local env).
+    *   `INFISICAL_PROJECT_ID`: Infisical Project ID.
+    *   `INFISICAL_ENVIRONMENT`: Infisical Environment (e.g. `dev`).
 
 ### Frontend Application
 
