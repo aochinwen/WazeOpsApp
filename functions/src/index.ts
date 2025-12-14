@@ -27,12 +27,24 @@ interface LtaIncident {
     Longitude: number;
     Message: string;
 }
+interface WazeFeedResponse {
+    alerts: WazeRawAlert[];
+    jams?: any[];
+}
 
-// --- Secrets Management ---
+// --- Secrets & Config ---
 let API_KEY = "default_key";
-let NOTIFY_URL = "http://localhost:3002/api/notify";
+// NEW: Updated Production Notification URL
+let NOTIFY_URL = "https://api-xkkfhwymhq-uc.a.run.app/api/notify";
+let ALERTS_URL = "https://api-xkkfhwymhq-uc.a.run.app/api/alerts";
+
 let DATAMALL_API_KEY = "";
 let secretsLoaded = false;
+
+const FEED_SOURCES = [
+    { id: 'west', name: 'West Area', url: "https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/b9eb1444-6cef-4cbd-b681-2937ad70dc9c?format=1" },
+    { id: 'thomson', name: 'Thomson Road', url: "https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/e0c6ef0a-aae0-4e8f-986b-65fb02a5e5a9?format=1" }
+];
 
 // Initialize Infisical
 async function loadSecrets() {
@@ -60,8 +72,8 @@ async function loadSecrets() {
             const apiKeySecret = await client.getSecret({ secretName: "API_KEY", projectId: project_id, environment: env });
             if (apiKeySecret) API_KEY = apiKeySecret.secretValue;
 
-            const notifyUrlSecret = await client.getSecret({ secretName: "NOTIFY_URL", projectId: project_id, environment: env });
-            if (notifyUrlSecret) NOTIFY_URL = notifyUrlSecret.secretValue;
+            // const notifyUrlSecret = await client.getSecret({ secretName: "NOTIFY_URL", projectId: project_id, environment: env });
+            // if (notifyUrlSecret) NOTIFY_URL = notifyUrlSecret.secretValue;
 
             const ltaKeySecret = await client.getSecret({ secretName: "DATAMALL_API_KEY", projectId: project_id, environment: env });
             if (ltaKeySecret) DATAMALL_API_KEY = ltaKeySecret.secretValue;
@@ -104,13 +116,55 @@ const fetchLtaData = async (): Promise<WazeRawAlert[]> => {
                 street: 'Singapore Road',
                 city: 'Singapore',
                 location: { x: item.Longitude, y: item.Latitude },
-                pubMillis: Date.now(),
+                pubMillis: Date.now(), // Live polling
                 reportDescription: item.Message
             };
         });
     } catch (e: any) {
         console.error("LTA Fetch Error:", e.message);
         return [];
+    }
+};
+
+const fetchWazeFeed = async (url: string): Promise<WazeRawAlert[]> => {
+    try {
+        const response = await axios.get<WazeFeedResponse>(url);
+        const alerts = response.data.alerts || [];
+        // Map jams to alerts if needed for notification?
+        // Typically notifications are for Incidents/Alerts, not just flow (Jams). 
+        // We'll stick to alerts for notifications to avoid spamming "Heavy Traffic".
+        return alerts;
+    } catch (e: any) {
+        console.error(`Waze Fetch Error (${url}):`, e.message);
+        return [];
+    }
+};
+
+const sendNotification = async (alert: WazeRawAlert, sourceName: string, sourceId: string) => {
+    const subtype = alert.subtype || alert.type;
+    const street = alert.street || "Unknown Street";
+    const city = alert.city || "Unknown City";
+    // NOTE: Hardcoded frontend URL pattern. Can be moved to env.
+    const detailsUrl = `https://aochinwen.github.io/WazeOpsApp/#/detail/${alert.uuid}?source=${sourceId}`;
+
+    const message = `⚠️ <b>${subtype}</b>\n\nDetected on ${street}, ${city}.\nSource: ${sourceName}\n<a href="${detailsUrl}">View Details</a>`;
+
+    let slug = 'road_incident';
+    if (sourceId === 'thomson') slug = 'Thompson_Road';
+    if (sourceId === 'west') slug = 'West_Region';
+    if (sourceId === 'LTA_Traffic') slug = 'LTA_Traffic';
+
+    try {
+        await axios.post(NOTIFY_URL, {
+            alertSlug: slug,
+            message: message,
+            parseMode: 'HTML'
+        }, {
+            headers: { 'x-api-key': API_KEY }
+        });
+        console.log(`Notification sent for ${alert.uuid}`);
+    } catch (error: any) {
+        console.error(`Notification failed for ${alert.uuid}:`, error.message);
     }
 };
 
@@ -159,11 +213,23 @@ app.post('/notify', async (req, res) => {
     }
 });
 
-// Bind secret to functions
+// Proxy for verifying alerts list
+app.get('/alerts', async (req, res) => {
+    try {
+        const response = await axios.get(ALERTS_URL, { headers: { 'x-api-key': API_KEY } });
+        res.json(response.data);
+    } catch (e: any) {
+        res.status(502).json({ error: "Fetch alerts failed", details: e.message });
+    }
+});
+
+// Bind express app to /api
 exports.api = functions
     .runWith({ secrets: ["INFISICAL"] })
     .https.onRequest(app);
 
+// Scheduled Monitor
+// Stateless implementation: Uses time-based window to find "New" alerts
 exports.monitor = functions
     .runWith({ secrets: ["INFISICAL"] })
     .pubsub.schedule('every 5 minutes')
@@ -171,8 +237,62 @@ exports.monitor = functions
         await loadSecrets();
         console.log("Running scheduled monitor...");
 
-        // Simulating monitor logic
+        // Define "New" as published in the last 5.5 minutes
+        // This covers the schedule interval + 30s buffer
+        const TIME_WINDOW = 5.5 * 60 * 1000;
+        const now = Date.now();
+
+        // 1. Check Waze Feeds
+        for (const source of FEED_SOURCES) {
+            const alerts = await fetchWazeFeed(source.url);
+            const newAlerts = alerts.filter(a => (now - a.pubMillis) < TIME_WINDOW);
+
+            console.log(`[${source.name}] Found ${alerts.length} total, ${newAlerts.length} new.`);
+
+            for (const alert of newAlerts) {
+                await sendNotification(alert, source.name, source.id);
+            }
+        }
+
+        // 2. Check LTA
+        // 2. Check LTA
         const ltaAlerts = await fetchLtaData();
-        console.log(`Monitor: Fetched ${ltaAlerts.length} LTA alerts`);
+
+        // Deduplication: Fetch currently active alerts from the Notification Service
+        // This prevents re-sending the same alert if it's already active/sent.
+        try {
+            const activeResponse = await axios.get(ALERTS_URL, { headers: { 'x-api-key': API_KEY } });
+            const activeAlerts: any[] = activeResponse.data || [];
+
+            // Extract UUIDs from active alert messages (looking for the detail link)
+            // Pattern: #/detail/lta-md5hash?source=LTA_Traffic
+            const activeUuids = new Set<string>();
+            activeAlerts.forEach(a => {
+                if (a.message && typeof a.message === 'string') {
+                    const match = a.message.match(/\/detail\/([a-zA-Z0-9-]+)\?/);
+                    if (match && match[1]) {
+                        activeUuids.add(match[1]);
+                    }
+                }
+            });
+
+            console.log(`[LTA] Found ${ltaAlerts.length} total. Active UUIDs in system: ${activeUuids.size}`);
+
+            const newLtaAlerts = ltaAlerts.filter(alert => !activeUuids.has(alert.uuid));
+
+            console.log(`[LTA] sending ${newLtaAlerts.length} new/unique alerts.`);
+
+            for (const alert of newLtaAlerts) {
+                await sendNotification(alert, "Singapore LTA", "LTA_Traffic");
+            }
+
+        } catch (e: any) {
+            console.error("Failed to fetch active alerts for deduplication. Fallback to limit 5.", e.message);
+            // Fallback: just send top 5 if we can't check history
+            for (const alert of ltaAlerts.slice(0, 5)) {
+                await sendNotification(alert, "Singapore LTA", "LTA_Traffic");
+            }
+        }
+
         return null;
     });

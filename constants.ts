@@ -24,7 +24,7 @@ export const FEED_SOURCES = [
     tvtUrl: 'https://www.waze.com/row-partnerhub-api/feeds-tvt/?id=1724377558927'
   },
   {
-    id: 'lta',
+    id: 'LTA_Traffic',
     name: 'Singapore LTA',
     url: '/feed/lta',
     tvtUrl: ''

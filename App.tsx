@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { AlertTriangle, RefreshCw, Search, ListFilter, LayoutDashboard, Map as MapIcon, Sparkles, Rss, Layers, Camera } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { fetchWazeIncidents, fetchTrafficView, fetchTrafficCameras } from './services/wazeService';
@@ -16,6 +16,7 @@ import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
 function App() {
   const { incidentId } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const [incidents, setIncidents] = useState<ManagedIncident[]>([]);
   const [trafficData, setTrafficData] = useState<WazeTrafficJam[]>([]);
   const [showTraffic, setShowTraffic] = useState(false);
@@ -29,7 +30,26 @@ function App() {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   // Feed State
-  const [activeFeedId, setActiveFeedId] = useState<string>(FEED_SOURCES[0].id);
+  // Feed State
+  const [activeFeedId, setActiveFeedId] = useState<string>(() => {
+    // Robust init: Check both react-router location and window hash directly
+    const getSourceFromStr = (searchStr: string) => new URLSearchParams(searchStr).get('source');
+
+    let src = getSourceFromStr(location.search);
+
+    // Fallback: Manually parse hash if react-router hasn't populated search yet
+    if (!src && window.location.hash.includes('?')) {
+      const hashSearch = window.location.hash.split('?')[1];
+      src = new URLSearchParams(hashSearch).get('source');
+    }
+
+    if (src && FEED_SOURCES.some(s => s.id === src)) {
+      console.log(`[App] Initializing with feed: ${src}`);
+      return src;
+    }
+    console.log(`[App] Initializing with default feed: ${FEED_SOURCES[0].id}`);
+    return FEED_SOURCES[0].id;
+  });
   const [customFeedUrl, setCustomFeedUrl] = useState<string>('');
 
   // Summary State
@@ -273,7 +293,7 @@ function App() {
       if (activeFeedId !== 'custom' || customFeedUrl) {
         loadData(false);
       }
-    }, 120000);
+    }, 300000);
     return () => clearInterval(interval);
   }, [activeFeedId, customFeedUrl]);
 
@@ -389,7 +409,11 @@ function App() {
                     <Rss className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <select
                       value={activeFeedId}
-                      onChange={(e) => setActiveFeedId(e.target.value)}
+                      onChange={(e) => {
+                        const newSource = e.target.value;
+                        setActiveFeedId(newSource);
+                        navigate({ pathname: '/', search: `?source=${newSource}` });
+                      }}
                       className="pl-9 pr-8 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none shadow-sm cursor-pointer"
                       style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em' }}
                     >
@@ -584,7 +608,7 @@ function App() {
                     if (currentSource.id === 'west') slug = 'West_Region';
 
                     try {
-                      const response = await fetch(`${process.env.BACKEND_URL || ''}/api/notify`, {
+                      const response = await fetch(`${process.env.BACKEND_URL || ''}/notify`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.NOTIFY_KEY || 'secret123' },
                         body: JSON.stringify({
@@ -615,7 +639,11 @@ function App() {
 
       <IncidentModal
         incident={selectedIncident}
-        onClose={() => setSelectedIncident(null)}
+        onClose={() => {
+          setSelectedIncident(null);
+          // When closing, update URL to remove the detail path but keep query params
+          navigate({ pathname: '/', search: location.search });
+        }}
         onUpdateStatus={handleUpdateStatus}
       />
 

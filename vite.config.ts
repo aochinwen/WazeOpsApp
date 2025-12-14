@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => {
       'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
       'process.env.NOTIFY_KEY': JSON.stringify(env.API_KEY || "secret123"),
-      'process.env.BACKEND_URL': JSON.stringify(env.VITE_BACKEND_URL || ""),
+      'process.env.BACKEND_URL': JSON.stringify(env.VITE_BACKEND_URL || "https://us-central1-wazeops.cloudfunctions.net/api"),
       'process.env.FRONTEND_URL': JSON.stringify(env.FRONTEND_URL || "")
     },
     resolve: {
