@@ -233,47 +233,35 @@ function App() {
     setSummaryText('');
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const incidentContext = incidents.map(i => {
-        const subtype = SUBTYPE_MAPPING[i.subtype || ''] || i.subtype || i.type;
-        return `- ${subtype} at ${i.street}, ${i.city} (Rel: ${i.reliability})`;
-      }).join('\n');
-      const prompt = `
-          As a Traffic Operations Manager, analyze the active incidents and organize them by **Location**.
+      // Send simplified incident data to backend to avoid payload limit issues, or full data if needed.
+      // We match the properties expected by the backend map function.
+      const payload = incidents.map(i => ({
+        subtype: SUBTYPE_MAPPING[i.subtype || ''] || i.subtype || i.type,
+        type: i.type,
+        street: i.street,
+        city: i.city,
+        reliability: i.reliability
+      }));
 
-          **Instructions:**
-          1. Group incidents logically by the specific road they are occurring on.
-          2. Assess the criticality of the situation for each road to assign a status symbol.
-          3. STRICTLY follow the output format below for each road. Do not write a general introduction or conclusion.
-
-          **Criticality Legend:**
-          🔴 (Red Circle) = Critical/High Impact (e.g., Accidents, Stoppages, Heavy Jams)
-          🟡 (Yellow Circle) = Moderate/Warning (e.g., Construction, Hazards, Slow Traffic)
-          🟢 (Green Circle) = Low Impact (e.g., Minor works)
-
-          **Required Output Format:**
-          **[Road Name]** [Symbol]
-          [Actionable description of the situation (2-3 sentences max)]
-
-          ---
-          Example:
-          **Ghim Moh Road** 🔴 
-          A car stoppage is currently blocking traffic flow. Towing services should be dispatched immediately to clear the obstruction.
-          
-          Context Data:
-          ${incidentContext}
-          `;
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-lite',
-        contents: prompt,
+      const response = await fetch(`${process.env.BACKEND_URL || ''}/summarize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.NOTIFY_KEY || 'secret123'
+        },
+        body: JSON.stringify({ incidents: payload })
       });
 
+      if (!response.ok) throw new Error("Backend summary failed");
+
+      const data = await response.json();
+
       const headerText = "Here's an analysis of active incidents organized by location, following your strict format:\n\n---\n\n";
-      setSummaryText(headerText + (response.text || "No insights available."));
+      setSummaryText(headerText + (data.text || "No insights available."));
+
     } catch (error: any) {
       console.error("AI Summary Error:", error);
-      setSummaryText("Unable to generate summary at this time. Please check your network or API key configuration.");
+      setSummaryText("Unable to generate summary at this time. Please check your network or server configuration.");
       addToast("Failed to generate AI summary", 'error');
     } finally {
       setGeneratingSummary(false);

@@ -18,6 +18,12 @@ export const FEED_SOURCES = [
     tvtUrl: 'https://www.waze.com/row-partnerhub-api/feeds-tvt/?id=1764829291980'
   },
   {
+    id: 'NSC-N105',
+    name: 'NSC-N105',
+    url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/ee935c52-98cd-4aa0-bac4-6f918a60b948?format=1',
+    tvtUrl: 'https://www.waze.com/row-partnerhub-api/feeds-tvt/?id=1767929979171'
+  },
+  {
     id: 'custom',
     name: 'Custom URL',
     url: '',

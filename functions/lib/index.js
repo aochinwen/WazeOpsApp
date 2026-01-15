@@ -256,17 +256,127 @@ exports.monitor = functions
         }
     }
     // 2. Check LTA
+    // 2. Check LTA
     const ltaAlerts = await fetchLtaData();
-    // Since LTA doesn't give us a 'pubMillis' that persists, we rely on the fact that 
-    // fetchLtaData returns the current snapshot.
-    // To avoid spam, we would ideally need a cache of recently sent UUIDs.
-    // For now, we will just log or assume the user accepts some duplication or add a robust dedupe later.
-    // However, to fulfill the request, we enable sending:
-    // Limit to 5 per run to avoid massive bursts
-    console.log(`[LTA] Found ${ltaAlerts.length} alerts.`);
-    for (const alert of ltaAlerts.slice(0, 5)) {
-        await sendNotification(alert, "Singapore LTA", "LTA_Traffic");
+    // Deduplication: Use Firestore to track sent UUIDs
+    const db = admin.firestore();
+    const sentRef = db.collection('sent_lta_notifications');
+    let sentCount = 0;
+    for (const alert of ltaAlerts) {
+        const docRef = sentRef.doc(alert.uuid);
+        try {
+            const doc = await docRef.get();
+            if (doc.exists) {
+                // Already sent
+                continue;
+            }
+            // If not sent, send it now
+            await sendNotification(alert, "Singapore LTA", "LTA_Traffic");
+            // Mark as sent in Firestore with a timestamp
+            await docRef.set({
+                sentAt: admin.firestore.FieldValue.serverTimestamp(),
+                message: alert.reportDescription || ""
+            });
+            sentCount++;
+        }
+        catch (e) {
+            console.error(`Firestore Check Error for ${alert.uuid}:`, e.message);
+        }
     }
+    console.log(`[LTA] Processed ${ltaAlerts.length} alerts. Sent ${sentCount} new notifications.`);
     return null;
+});
+// --- AI Summary ---
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+let GEMINI_API_KEY = "";
+// Helper to update secrets with Gemini Key
+async function loadAllSecrets() {
+    await loadSecrets(); // Loads API_KEY, DATAMALL_API_KEY
+    if (GEMINI_API_KEY)
+        return;
+    // Manual load for Gemini from Infisical if needed, or re-use existing logic
+    // We can reuse the same client stored or just re-init
+    let secretVal = {};
+    if (process.env.INFISICAL) {
+        try {
+            secretVal = JSON.parse(process.env.INFISICAL);
+        }
+        catch (e) { }
+    }
+    const { client_id, client_secret, project_id, environment } = secretVal.infisical || {};
+    if (client_id && client_secret && project_id) {
+        try {
+            const client = new sdk_1.InfisicalClient({ clientId: client_id, clientSecret: client_secret });
+            const env = environment || 'dev';
+            const geminiSecret = await client.getSecret({ secretName: "GEMINI_API", projectId: project_id, environment: env });
+            if (geminiSecret)
+                GEMINI_API_KEY = geminiSecret.secretValue;
+            console.log("Gemini Key Loaded from Infisical");
+        }
+        catch (e) {
+            console.error("Gemini Key Load Failed", e);
+        }
+    }
+}
+app.post('/summarize', async (req, res) => {
+    // 1. Verify API Key from frontend (proxy protection)
+    const apiKey = req.headers['x-api-key'];
+    if (apiKey !== API_KEY) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+    }
+    // 2. Ensure Gemini Key is loaded
+    await loadAllSecrets();
+    if (!GEMINI_API_KEY) {
+        res.status(500).json({ error: "Server missing Gemini configuration" });
+        return;
+    }
+    const { incidents } = req.body;
+    if (!incidents || !Array.isArray(incidents)) {
+        res.status(400).json({ error: "Invalid incidents data" });
+        return;
+    }
+    try {
+        const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+        // Use gemini-1.5-flash which is widely available and fast
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        // Reconstruct context
+        const incidentContext = incidents.map((i) => {
+            return `- ${i.subtype || i.type} at ${i.street}, ${i.city} (Rel: ${i.reliability})`;
+        }).join('\n');
+        const prompt = `
+        As a Traffic Operations Manager, analyze the active incidents and organize them by **Location**.
+
+        **Instructions:**
+        1. Group incidents logically by the specific road they are occurring on.
+        2. Assess the criticality of the situation for each road to assign a status symbol.
+        3. STRICTLY follow the output format below for each road. Do not write a general introduction or conclusion.
+
+        **Criticality Legend:**
+        🔴 (Red Circle) = Critical/High Impact (e.g., Accidents, Stoppages, Heavy Jams)
+        🟡 (Yellow Circle) = Moderate/Warning (e.g., Construction, Hazards, Slow Traffic)
+        🟢 (Green Circle) = Low Impact (e.g., Minor works)
+
+        **Required Output Format:**
+        **[Road Name]** [Symbol]
+        [Actionable description of the situation (2-3 sentences max)]
+
+        ---
+        Example:
+        **Ghim Moh Road** 🔴 
+        A car stoppage is currently blocking traffic flow. Towing services should be dispatched immediately to clear the obstruction.
+        
+        Context Data:
+        ${incidentContext}
+        `;
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+        res.json({ text });
+    }
+    catch (e) {
+        console.error("AI Gen Error:", e);
+        res.status(502).json({ error: "AI Generation failed", details: e.message });
+    }
 });
 //# sourceMappingURL=index.js.map
