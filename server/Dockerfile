@@ -15,6 +15,9 @@ RUN npm install
 # Copy source code
 COPY . .
 
+# Build the TypeScript code
+RUN npm run build
+
 # Expose port (Cloud Run defaults to 8080)
 ENV PORT 8080
 EXPOSE 8080

@@ -5,8 +5,9 @@
     "main": "worker.ts",
     "type": "module",
     "scripts": {
-        "start": "ts-node worker.ts",
-        "dev": "ts-node worker.ts"
+        "start": "node dist/worker.js",
+        "dev": "ts-node worker.ts",
+        "build": "tsc"
     },
     "dependencies": {
         "@infisical/sdk": "^4.0.6",
