@@ -13,7 +13,7 @@ import { InfisicalSDK } from '@infisical/sdk';
 dotenv.config({ path: path.resolve(fileURLToPath(import.meta.url), '../../.env.local') });
 
 const app = express();
-const PORT = 3001; // Backend runs on 3001
+const PORT = process.env.PORT || 3001; // Use env PORT for Cloud Run, default to 3001 locally
 // Use FRONTEND_URL from env, or default to localhost
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 // Define Feed Sources
