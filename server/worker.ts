@@ -214,7 +214,9 @@ class WazeMonitor {
 }
 
 // Start Server Logic
-async function startServer() {
+// --- Initialization Logic ---
+
+async function initializeSecrets() {
   if (process.env.INFISICAL_CLIENT_ID && process.env.INFISICAL_CLIENT_SECRET) {
     console.log("Infisical credentials found. Initializing SDK...");
     try {
@@ -255,19 +257,30 @@ async function startServer() {
 
   // Verify critical config
   if (!API_KEY) {
-    console.error("CRITICAL: API_KEY is missing!");
-    // process.exit(1); // Optional: Fail fast? For now, let it run but it won't auth.
+    console.warn("WARNING: API_KEY is still missing after initialization!");
   }
+}
 
-  // Start Server
-  app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`Forwarding notifications to ${NOTIFY_URL}`);
+// Start Server Logic
+async function startServer() {
+  // 1. Listen immediately to satisfy Cloud Run health checks
+  const portNumeric = Number(PORT);
+  app.listen(portNumeric, '0.0.0.0', () => {
+    console.log(`Server running on http://0.0.0.0:${portNumeric}`);
+    console.log(`Initial NOTIFY_URL: ${NOTIFY_URL}`);
   });
 
-  // Start Monitor
-  const monitor = new WazeMonitor(NOTIFY_URL);
-  monitor.start();
+  // 2. Initialize secrets in the background
+  initializeSecrets().then(() => {
+    console.log("Background initialization complete. Starting monitor...");
+    const monitor = new WazeMonitor(NOTIFY_URL);
+    monitor.start();
+  }).catch(err => {
+    console.error("Background initialization failed:", err.message);
+    // Still start monitor with whatever we have
+    const monitor = new WazeMonitor(NOTIFY_URL);
+    monitor.start();
+  });
 }
 
 startServer();
