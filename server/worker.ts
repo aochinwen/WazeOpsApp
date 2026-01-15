@@ -9,23 +9,16 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { InfisicalSDK } from '@infisical/sdk';
 
-// Environment Setup
-dotenv.config({ path: path.resolve(fileURLToPath(import.meta.url), '../../.env.local') });
-
+// --- Middleware & Global State ---
 const app = express();
-const PORT = process.env.PORT || 3001; // Use env PORT for Cloud Run, default to 3001 locally
-// Use FRONTEND_URL from env, or default to localhost
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
-// Define Feed Sources
-const FEED_SOURCES = [
-  { id: 'west', name: 'West Area', url: "https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/b9eb1444-6cef-4cbd-b681-2937ad70dc9c?format=1" },
-  { id: 'thomson', name: 'Thomson Road', url: "https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/e0c6ef0a-aae0-4e8f-986b-65fb02a5e5a9?format=1" }
-];
-
 let API_KEY = process.env.API_KEY;
 let NOTIFY_URL = process.env.NOTIFY_URL || "http://localhost:3002/api/notify";
 
-// Middleware
+// Use PORT from env, or default to 3001
+const PORT = process.env.PORT || 3001;
+// Use FRONTEND_URL from env, or default to a reasonable fallback
+const FRONTEND_URL = process.env.FRONTEND_URL || "https://aochinwen.github.io/WazeOpsApp";
+
 app.use(cors({
   origin: [
     "http://localhost:3000",
@@ -214,9 +207,26 @@ class WazeMonitor {
 }
 
 // Start Server Logic
+// --- Feed Sources ---
+const FEED_SOURCES = [
+  { id: 'west', name: 'West Area', url: "https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/b9eb1444-6cef-4cbd-b681-2937ad70dc9c?format=1" },
+  { id: 'thomson', name: 'Thomson Road', url: "https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/e0c6ef0a-aae0-4e8f-986b-65fb02a5e5a9?format=1" }
+];
+
 // --- Initialization Logic ---
 
 async function initializeSecrets() {
+  // Try to load local .env.local if it exists (only for local development)
+  try {
+    const envPath = path.resolve(fileURLToPath(import.meta.url), '../../.env.local');
+    dotenv.config({ path: envPath });
+    // Refresh globals if they were loaded from process.env after config
+    if (!API_KEY) API_KEY = process.env.API_KEY;
+    if (NOTIFY_URL.includes('localhost') && process.env.NOTIFY_URL) NOTIFY_URL = process.env.NOTIFY_URL;
+  } catch (e) {
+    console.log("No .env.local file found, proceeding with process.env");
+  }
+
   if (process.env.INFISICAL_CLIENT_ID && process.env.INFISICAL_CLIENT_SECRET) {
     console.log("Infisical credentials found. Initializing SDK...");
     try {
@@ -252,35 +262,45 @@ async function initializeSecrets() {
       console.error("Failed to authenticate with Infisical:", err.message);
     }
   } else {
-    console.log("Infisical credentials not found. Using local env.");
+    console.log("Infisical credentials not found. Using current environment variables.");
   }
 
-  // Verify critical config
   if (!API_KEY) {
-    console.warn("WARNING: API_KEY is still missing after initialization!");
+    console.warn("WARNING: API_KEY is missing. Notifications will fail auth.");
   }
 }
 
 // Start Server Logic
 async function startServer() {
-  // 1. Listen immediately to satisfy Cloud Run health checks
   const portNumeric = Number(PORT);
-  app.listen(portNumeric, '0.0.0.0', () => {
-    console.log(`Server running on http://0.0.0.0:${portNumeric}`);
-    console.log(`Initial NOTIFY_URL: ${NOTIFY_URL}`);
+
+  // 1. Start listening immediately (BEFORE any async setup)
+  // We use 0.0.0.0 specifically for Cloud Run compatibility
+  const server = app.listen(portNumeric, '0.0.0.0', () => {
+    console.log(`\n=========================================`);
+    console.log(`SERVER STARTING ON PORT ${portNumeric}`);
+    console.log(`Address: http://0.0.0.0:${portNumeric}`);
+    console.log(`=========================================\n`);
   });
 
-  // 2. Initialize secrets in the background
-  initializeSecrets().then(() => {
-    console.log("Background initialization complete. Starting monitor...");
-    const monitor = new WazeMonitor(NOTIFY_URL);
-    monitor.start();
-  }).catch(err => {
-    console.error("Background initialization failed:", err.message);
-    // Still start monitor with whatever we have
-    const monitor = new WazeMonitor(NOTIFY_URL);
-    monitor.start();
+  // Handle server errors
+  server.on('error', (err: any) => {
+    console.error("CRITICAL SERVER ERROR:", err.message);
   });
+
+  // 2. Perform initialization in the background
+  initializeSecrets()
+    .then(() => {
+      console.log(`Initialization complete. Monitoring started.`);
+      const monitor = new WazeMonitor(NOTIFY_URL);
+      monitor.start();
+    })
+    .catch(err => {
+      console.error("Background initialization failed:", err.message);
+      // Still start monitor as fallback
+      const monitor = new WazeMonitor(NOTIFY_URL);
+      monitor.start();
+    });
 }
 
 startServer();
