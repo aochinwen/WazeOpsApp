@@ -16,7 +16,7 @@
   ],
   "apphosting": {
     "backendId": "wazeopsbackend",
-    "rootDir": "/",
+    "rootDir": "server",
     "ignore": [
       "node_modules",
       ".git",
