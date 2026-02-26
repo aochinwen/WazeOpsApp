@@ -6,22 +6,22 @@ export const WAZE_FEED_URL = "https://www.waze.com/row-partnerhub-api/partners/1
 
 export const FEED_SOURCES = [
   {
-    id: 'west',
-    name: 'West Area',
-    url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/b9eb1444-6cef-4cbd-b681-2937ad70dc9c?format=1',
-    tvtUrl: 'https://www.waze.com/row-partnerhub-api/feeds-tvt/?id=18552697387'
-  },
-  {
-    id: 'thomson',
-    name: 'Thomson Road',
-    url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/e0c6ef0a-aae0-4e8f-986b-65fb02a5e5a9?format=1',
-    tvtUrl: 'https://www.waze.com/row-partnerhub-api/feeds-tvt/?id=1764829291980'
+    id: 'N113',
+    name: 'N113',
+    url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/a2141ab7-ad83-4456-a614-54c572a780d4?format=1',
+    tvtUrl: 'https://www.waze.com/row-partnerhub-api/feeds-tvt/?id=1770889148579'
   },
   {
     id: 'NSC-N105',
-    name: 'NSC-N105',
+    name: 'NSC - N105',
     url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/ee935c52-98cd-4aa0-bac4-6f918a60b948?format=1',
     tvtUrl: 'https://www.waze.com/row-partnerhub-api/feeds-tvt/?id=1767929979171'
+  },
+  {
+    id: 'N105',
+    name: 'N105',
+    url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/e0c6ef0a-aae0-4e8f-986b-65fb02a5e5a9?format=1',
+    tvtUrl: 'https://www.waze.com/row-partnerhub-api/feeds-tvt/?id=1764829291980'
   },
   {
     id: 'custom',
