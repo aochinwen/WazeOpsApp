@@ -94,7 +94,7 @@ export const IncidentMap: React.FC<IncidentMapProps> = ({ incidents, trafficData
 
     const [mapError, setMapError] = useState(false);
     const [isMapLoaded, setIsMapLoaded] = useState(false);
-    const mapToken = 'pk.eyJ1IjoicmF5MTExMzIwMDIiLCJhIjoiY2tvY3kwb3Y5MmliZDJub24wdnpjMTB5NiJ9.kPPmudTylSbhH27w2lwsoQ';
+    const mapToken = import.meta.env.VITE_MAPBOX_TOKEN || '';
 
     useEffect(() => {
         if (!mapContainer.current) return;
