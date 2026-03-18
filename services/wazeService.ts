@@ -1,17 +1,18 @@
 
 import { WazeFeedResponse, ManagedIncident, IncidentStatus, WazeRawAlert, WazeTrafficJam, TrafficViewResponse, TrafficCamera } from '../types';
 
-const PROXY_URL = 'https://corsproxy.io/?';
+const getBackendUrl = () => {
+  return import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+};
 
 const fetchWithProxy = async (targetUrl: string) => {
   // Append timestamp to prevent caching
   const separator = targetUrl.includes('?') ? '&' : '?';
   const urlWithTime = `${targetUrl}${separator}t=${new Date().getTime()}`;
 
-  // If URL is relative (our own backend) or local, skip the proxy
+  // If URL is relative (our own backend) or local, use it directly
   if (targetUrl.startsWith('/') || targetUrl.includes('localhost')) {
-    // Prepend configured BACKEND_URL for relative paths
-    const backend = process.env.BACKEND_URL || 'http://localhost:3001';
+    const backend = getBackendUrl();
     const fullUrl = targetUrl.startsWith('/') ? `${backend}${targetUrl}` : targetUrl;
 
     // Re-append timestamp to the full URL
@@ -23,7 +24,9 @@ const fetchWithProxy = async (targetUrl: string) => {
     return response.json();
   }
 
-  const proxyUrl = `${PROXY_URL}${encodeURIComponent(urlWithTime)}`;
+  // For external Waze URLs, use our backend proxy
+  const backend = getBackendUrl();
+  const proxyUrl = `${backend}/proxy?url=${encodeURIComponent(urlWithTime)}`;
 
   const response = await fetch(proxyUrl, {
     method: 'GET',

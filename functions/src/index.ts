@@ -223,6 +223,35 @@ app.get('/alerts', async (req, res) => {
     }
 });
 
+// Proxy for Waze feeds and TVT URLs to bypass CORS
+app.get('/proxy', async (req, res) => {
+    const targetUrl = req.query.url as string;
+    
+    if (!targetUrl) {
+        res.status(400).json({ error: "Missing 'url' query parameter" });
+        return;
+    }
+
+    // Validate that the URL is from Waze
+    if (!targetUrl.includes('waze.com')) {
+        res.status(403).json({ error: "Only Waze URLs are allowed" });
+        return;
+    }
+
+    try {
+        const response = await axios.get(targetUrl, {
+            headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'WazeOpsApp/1.0'
+            }
+        });
+        res.json(response.data);
+    } catch (e: any) {
+        console.error(`Proxy error for ${targetUrl}:`, e.message);
+        res.status(502).json({ error: "Proxy request failed", details: e.message });
+    }
+});
+
 // Bind express app to /api
 exports.api = functions
     .runWith({ secrets: ["INFISICAL"] })
