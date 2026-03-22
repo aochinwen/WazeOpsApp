@@ -72,30 +72,6 @@ export const FEED_SOURCES = [
     tvtUrl: 'https://www.waze.com/row-partnerhub-api/feeds-tvt/?id=1770889148579'
   },
   {
-    id: 'feed-0d9de297',
-    name: 'Feed 0d9de297',
-    url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/0d9de297-44e8-4c4b-97bb-9d35115dc45b?format=1',
-    tvtUrl: ''
-  },
-  {
-    id: 'feed-27b495d6',
-    name: 'Feed 27b495d6',
-    url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/27b495d6-e791-477c-8ca6-f5c07e69d245?format=1',
-    tvtUrl: ''
-  },
-  {
-    id: 'feed-b9eb1444',
-    name: 'Feed b9eb1444',
-    url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/b9eb1444-6cef-4cbd-b681-2937ad70dc9c?format=1',
-    tvtUrl: ''
-  },
-  {
-    id: 'feed-e0721125',
-    name: 'Feed e0721125',
-    url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/e0721125-6c5d-4e9a-8bc8-531ae7b32b31?format=1',
-    tvtUrl: ''
-  },
-  {
     id: 'N105',
     name: 'N105',
     url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/e0c6ef0a-aae0-4e8f-986b-65fb02a5e5a9?format=1',

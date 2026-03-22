@@ -52,9 +52,44 @@ let ALERTS_URL = "https://api-xkkfhwymhq-uc.a.run.app/api/alerts";
 let DATAMALL_API_KEY = "";
 let secretsLoaded = false;
 const FEED_SOURCES = [
-    { id: 'west', name: 'West Area', url: "https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/b9eb1444-6cef-4cbd-b681-2937ad70dc9c?format=1" },
-    { id: 'thomson', name: 'Thomson Road', url: "https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/e0c6ef0a-aae0-4e8f-986b-65fb02a5e5a9?format=1" }
+    { id: 'NSC-N101', name: 'NSC-N101', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/838924d4-1642-4419-9e9f-3d17ffe11fcf?format=1' },
+    { id: 'NSC-N102', name: 'NSC-N102', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/3ad950b5-f813-4fe7-a944-bf6ab2b3449c?format=1' },
+    { id: 'NSC-N103', name: 'NSC-N103', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/2ae59ac0-2054-4681-9af0-e41a67da94d8?format=1' },
+    { id: 'NSC-N106', name: 'NSC-N106', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/a40b3615-d37b-4bb1-8770-b93292b59ccb?format=1' },
+    { id: 'NSC-N107', name: 'NSC-N107', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/3e748db2-ce25-4ce7-a7eb-e80b8958bf3d?format=1' },
+    { id: 'NSC-N109', name: 'NSC-N109', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/9340dec6-7bb3-4747-8118-74e9e33c1217?format=1' },
+    { id: 'NSC-N110', name: 'NSC-N110', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/ef55d393-77d4-4c5b-b0a5-9e232d306a99?format=1' },
+    { id: 'NSC-N111', name: 'NSC-N111', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/6df32654-29e2-41d6-9df2-f287efc799bd?format=1' },
+    { id: 'NSC-N112', name: 'NSC-N112', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/ac49baf5-cbe1-44ea-8ee3-7c9bdbd82ff0?format=1' },
+    { id: 'NSC-N115', name: 'NSC-N115', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/cb390849-f2ef-459f-b136-c28cd473bc24?format=1' },
+    { id: 'N113', name: 'N113', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/a2141ab7-ad83-4456-a614-54c572a780d4?format=1' },
+    { id: 'N105', name: 'N105', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/e0c6ef0a-aae0-4e8f-986b-65fb02a5e5a9?format=1' },
+    { id: 'NSC-N105', name: 'NSC-N105', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/ee935c52-98cd-4aa0-bac4-6f918a60b948?format=1' },
+    { id: 'feed-0d9de297', name: 'Feed 0d9de297', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/0d9de297-44e8-4c4b-97bb-9d35115dc45b?format=1' },
+    { id: 'feed-27b495d6', name: 'Feed 27b495d6', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/27b495d6-e791-477c-8ca6-f5c07e69d245?format=1' },
+    { id: 'feed-b9eb1444', name: 'Feed b9eb1444', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/b9eb1444-6cef-4cbd-b681-2937ad70dc9c?format=1' },
+    { id: 'feed-e0721125', name: 'Feed e0721125', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/e0721125-6c5d-4e9a-8bc8-531ae7b32b31?format=1' }
 ];
+const FEED_ID_TO_SLUG = {
+    'NSC-N101': 'nsc_n101',
+    'NSC-N102': 'nsc_n102',
+    'NSC-N103': 'nsc_n103',
+    'NSC-N106': 'nsc_n106',
+    'NSC-N107': 'nsc_n107',
+    'NSC-N109': 'nsc_n109',
+    'NSC-N110': 'nsc_n110',
+    'NSC-N111': 'nsc_n111',
+    'NSC-N112': 'nsc_n112',
+    'NSC-N115': 'nsc_n115',
+    'N113': 'n113',
+    'N105': 'n105',
+    'NSC-N105': 'nsc_n105',
+    'LTA_Traffic': 'lta_traffic',
+    'feed-0d9de297': 'feed_0d9de297',
+    'feed-27b495d6': 'feed_27b495d6',
+    'feed-b9eb1444': 'feed_b9eb1444',
+    'feed-e0721125': 'feed_e0721125'
+};
 // Initialize Infisical
 async function loadSecrets() {
     if (secretsLoaded)
@@ -155,16 +190,9 @@ const sendNotification = async (alert, sourceName, sourceId) => {
     const subtype = alert.subtype || alert.type;
     const street = alert.street || "Unknown Street";
     const city = alert.city || "Unknown City";
-    // NOTE: Hardcoded frontend URL pattern. Can be moved to env.
     const detailsUrl = `https://aochinwen.github.io/WazeOpsApp/#/detail/${alert.uuid}?source=${sourceId}`;
     const message = `⚠️ <b>${subtype}</b>\n\nDetected on ${street}, ${city}.\nSource: ${sourceName}\n<a href="${detailsUrl}">View Details</a>`;
-    let slug = 'road_incident';
-    if (sourceId === 'thomson')
-        slug = 'Thompson_Road';
-    if (sourceId === 'west')
-        slug = 'West_Region';
-    if (sourceId === 'LTA_Traffic')
-        slug = 'LTA_Traffic';
+    const slug = FEED_ID_TO_SLUG[sourceId] || 'road_incident';
     try {
         await axios_1.default.post(NOTIFY_URL, {
             alertSlug: slug,
@@ -173,7 +201,7 @@ const sendNotification = async (alert, sourceName, sourceId) => {
         }, {
             headers: { 'x-api-key': API_KEY }
         });
-        console.log(`Notification sent for ${alert.uuid}`);
+        console.log(`Notification sent for ${alert.uuid} with slug: ${slug}`);
     }
     catch (error) {
         console.error(`Notification failed for ${alert.uuid}:`, error.message);
