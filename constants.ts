@@ -6,6 +6,24 @@ export const WAZE_FEED_URL = "https://www.waze.com/row-partnerhub-api/partners/1
 
 export const FEED_SOURCES = [
   {
+    id: 'custom',
+    name: 'Custom URL',
+    url: '',
+    tvtUrl: ''
+  },
+  {
+    id: 'N105',
+    name: 'N105',
+    url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/e0c6ef0a-aae0-4e8f-986b-65fb02a5e5a9?format=1',
+    tvtUrl: 'https://www.waze.com/row-partnerhub-api/feeds-tvt/?id=1764829291980'
+  },
+  {
+    id: 'N113',
+    name: 'N113',
+    url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/a2141ab7-ad83-4456-a614-54c572a780d4?format=1',
+    tvtUrl: 'https://www.waze.com/row-partnerhub-api/feeds-tvt/?id=1770889148579'
+  },
+  {
     id: 'NSC-N101',
     name: 'NSC-N101',
     url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/838924d4-1642-4419-9e9f-3d17ffe11fcf?format=1',
@@ -22,6 +40,12 @@ export const FEED_SOURCES = [
     name: 'NSC-N103',
     url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/2ae59ac0-2054-4681-9af0-e41a67da94d8?format=1',
     tvtUrl: 'https://www.waze.com/row-partnerhub-api/feeds-tvt/?id=1772781535086'
+  },
+  {
+    id: 'NSC-N105',
+    name: 'NSC - N105',
+    url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/ee935c52-98cd-4aa0-bac4-6f918a60b948?format=1',
+    tvtUrl: 'https://www.waze.com/row-partnerhub-api/feeds-tvt/?id=1767929979171'
   },
   {
     id: 'NSC-N106',
@@ -64,30 +88,6 @@ export const FEED_SOURCES = [
     name: 'NSC - N115',
     url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/cb390849-f2ef-459f-b136-c28cd473bc24?format=1',
     tvtUrl: 'https://www.waze.com/row-partnerhub-api/feeds-tvt/?id=1773640703358'
-  },
-  {
-    id: 'N113',
-    name: 'N113',
-    url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/a2141ab7-ad83-4456-a614-54c572a780d4?format=1',
-    tvtUrl: 'https://www.waze.com/row-partnerhub-api/feeds-tvt/?id=1770889148579'
-  },
-  {
-    id: 'N105',
-    name: 'N105',
-    url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/e0c6ef0a-aae0-4e8f-986b-65fb02a5e5a9?format=1',
-    tvtUrl: 'https://www.waze.com/row-partnerhub-api/feeds-tvt/?id=1764829291980'
-  },
-  {
-    id: 'NSC-N105',
-    name: 'NSC - N105',
-    url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/ee935c52-98cd-4aa0-bac4-6f918a60b948?format=1',
-    tvtUrl: 'https://www.waze.com/row-partnerhub-api/feeds-tvt/?id=1767929979171'
-  },
-  {
-    id: 'custom',
-    name: 'Custom URL',
-    url: '',
-    tvtUrl: ''
   },
   {
     id: 'LTA_Traffic',
