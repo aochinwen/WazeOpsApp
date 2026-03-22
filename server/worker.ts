@@ -317,7 +317,7 @@ interface LtaIncident {
 
 const mapLtaTypeToWaze = (ltaType: string): { type: string, subtype: string } => {
   const t = ltaType.toLowerCase();
-  if (t.includes('accident')) return { type: 'ACCIDENT', subtype: 'ACCIDENT_Major' }; // Default to major to be safe
+  if (t.includes('accident')) return { type: 'ACCIDENT', subtype: 'ACCIDENT_MAJOR' };
   if (t.includes('roadwork')) return { type: 'CONSTRUCTION', subtype: 'CONSTRUCTION' };
   if (t.includes('breakdown')) return { type: 'HAZARD', subtype: 'HAZARD_ON_SHOULDER_CAR_STOPPED' };
   if (t.includes('weather')) return { type: 'WEATHERHAZARD', subtype: 'HAZARD_WEATHER' };

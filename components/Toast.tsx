@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { CheckCircle, AlertCircle, X, Info } from 'lucide-react';
+import { TOAST_AUTO_CLOSE_MS } from '../constants';
 
 export type ToastType = 'success' | 'error' | 'info';
 
@@ -18,7 +19,7 @@ const ToastItem: React.FC<ToastProps> = ({ toast, onClose }) => {
   useEffect(() => {
     const timer = setTimeout(() => {
       onClose(toast.id);
-    }, 4000); // Auto close after 4 seconds
+    }, TOAST_AUTO_CLOSE_MS);
 
     return () => clearTimeout(timer);
   }, [toast.id, onClose]);

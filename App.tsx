@@ -1,16 +1,14 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { AlertTriangle, RefreshCw, Search, ListFilter, LayoutDashboard, Map as MapIcon, Sparkles, Rss, Layers, Camera } from 'lucide-react';
-import { GoogleGenAI } from "@google/genai";
+import { AlertTriangle, RefreshCw, Search, ListFilter, LayoutDashboard, Map as MapIcon, Rss, Layers, Camera } from 'lucide-react';
 import { fetchWazeIncidents, fetchTrafficView, fetchTrafficCameras } from './services/wazeService';
 import { ManagedIncident, IncidentStatus, FilterCategory, WazeTrafficJam } from './types';
-import { CATEGORY_CONFIG, SUBTYPE_MAPPING, DEMO_ALERTS, FEED_SOURCES } from './constants';
+import { CATEGORY_CONFIG, SUBTYPE_MAPPING, DEMO_ALERTS, FEED_SOURCES, FEED_POLL_INTERVAL_MS } from './constants';
 import { IncidentModal } from './components/IncidentModal';
 import { IncidentFilter } from './components/IncidentFilter';
 import { IncidentStats } from './components/IncidentStats';
 import { IncidentMap } from './components/IncidentMap';
-import { SummaryModal } from './components/SummaryModal';
 import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
 
 function App() {
@@ -47,15 +45,10 @@ function App() {
       console.log(`[App] Initializing with feed: ${src}`);
       return src;
     }
-    console.log(`[App] Initializing with default feed: ${FEED_SOURCES[0].id}`);
-    return FEED_SOURCES[0].id;
+    console.log(`[App] Initializing with default feed: ${FEED_SOURCES[1].id}`);
+    return FEED_SOURCES[1].id;
   });
   const [customFeedUrl, setCustomFeedUrl] = useState<string>('');
-
-  // Summary State
-  const [summaryOpen, setSummaryOpen] = useState(false);
-  const [summaryText, setSummaryText] = useState('');
-  const [generatingSummary, setGeneratingSummary] = useState(false);
 
   const addToast = useCallback((message: string, type: ToastType) => {
     setToasts(prev => [...prev, { id: Date.now(), message, type }]);
@@ -222,52 +215,6 @@ function App() {
     }
   };
 
-  const handleGenerateSummary = async () => {
-    if (incidents.length === 0) {
-      addToast("No incidents to summarize", 'info');
-      return;
-    }
-
-    setSummaryOpen(true);
-    setGeneratingSummary(true);
-    setSummaryText('');
-
-    try {
-      // Send simplified incident data to backend to avoid payload limit issues, or full data if needed.
-      // We match the properties expected by the backend map function.
-      const payload = incidents.map(i => ({
-        subtype: SUBTYPE_MAPPING[i.subtype || ''] || i.subtype || i.type,
-        type: i.type,
-        street: i.street,
-        city: i.city,
-        reliability: i.reliability
-      }));
-
-      const response = await fetch(`${process.env.BACKEND_URL || ''}/summarize`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.NOTIFY_KEY || 'secret123'
-        },
-        body: JSON.stringify({ incidents: payload })
-      });
-
-      if (!response.ok) throw new Error("Backend summary failed");
-
-      const data = await response.json();
-
-      const headerText = "Here's an analysis of active incidents organized by location, following your strict format:\n\n---\n\n";
-      setSummaryText(headerText + (data.text || "No insights available."));
-
-    } catch (error: any) {
-      console.error("AI Summary Error:", error);
-      setSummaryText("Unable to generate summary at this time. Please check your network or server configuration.");
-      addToast("Failed to generate AI summary", 'error');
-    } finally {
-      setGeneratingSummary(false);
-    }
-  };
-
   // Initial load
   useEffect(() => {
     if (activeFeedId !== 'custom') {
@@ -431,15 +378,6 @@ function App() {
                   <span className="hidden md:inline">Refresh</span>
                 </button>
 
-                <button
-                  onClick={handleGenerateSummary}
-                  disabled={loading || generatingSummary}
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 border border-transparent rounded-xl text-sm font-medium text-white hover:bg-indigo-700 transition-all shadow-sm whitespace-nowrap disabled:opacity-50 hover:shadow-indigo-200 hover:shadow-md"
-                >
-                  <Sparkles size={18} />
-                  <span className="hidden md:inline">AI Summary</span>
-                </button>
-
                 <div className="relative flex-1 sm:flex-initial">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
                   <input
@@ -566,18 +504,6 @@ function App() {
             <div className="sticky top-24 space-y-6">
               <IncidentStats incidents={incidents} />
 
-              {/* Mini Help Card */}
-              <div className="bg-gradient-to-br from-indigo-900 to-blue-900 rounded-2xl p-6 text-white shadow-lg">
-                <h3 className="font-bold text-lg mb-2">Team Dispatch</h3>
-                <p className="text-indigo-200 text-sm mb-4">
-                  Select an incident to view details and instantly dispatch a team via WhatsApp integration.
-                </p>
-                <div className="flex items-center gap-2 text-xs text-indigo-300">
-                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-                  System Operational
-                </div>
-              </div>
-
               {/* Debug / Simulation Card */}
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
                 <div className="flex items-center justify-between mb-4">
@@ -633,13 +559,6 @@ function App() {
           navigate({ pathname: '/', search: location.search });
         }}
         onUpdateStatus={handleUpdateStatus}
-      />
-
-      <SummaryModal
-        isOpen={summaryOpen}
-        onClose={() => setSummaryOpen(false)}
-        summary={summaryText}
-        isLoading={generatingSummary}
       />
     </div>
   );

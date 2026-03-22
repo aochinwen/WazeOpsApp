@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { X, MapPin, Share2, Copy, ExternalLink, AlertTriangle } from 'lucide-react';
 import { ManagedIncident, IncidentStatus } from '../types';
-import { CATEGORY_CONFIG, SUBTYPE_MAPPING } from '../constants';
+import { CATEGORY_CONFIG, SUBTYPE_MAPPING, MAP_MODAL_INIT_DELAY_MS } from '../constants';
 
 declare const mapboxgl: any;
 
@@ -15,7 +15,7 @@ export const IncidentModal: React.FC<IncidentModalProps> = ({ incident, onClose,
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<any>(null);
   const [mapError, setMapError] = useState(false);
-  const mapToken = 'pk.eyJ1IjoicmF5MTExMzIwMDIiLCJhIjoiY2tvY3kwb3Y5MmliZDJub24wdnpjMTB5NiJ9.kPPmudTylSbhH27w2lwsoQ';
+  const mapToken = import.meta.env.VITE_MAPBOX_TOKEN || '';
 
   // Initialize map when incident changes
   useEffect(() => {
@@ -59,12 +59,14 @@ export const IncidentModal: React.FC<IncidentModalProps> = ({ incident, onClose,
         console.error("Error initializing modal map:", e);
         setMapError(true);
       }
-    }, 300); // 300ms delay matches typical modal transition times
+    }, MAP_MODAL_INIT_DELAY_MS);
 
     return () => {
       clearTimeout(timer);
-      map.current?.remove();
-      map.current = null;
+      if (map.current) {
+        map.current.remove();
+        map.current = null;
+      }
     };
   }, [incident]);
 

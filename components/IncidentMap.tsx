@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { ManagedIncident, WazeTrafficJam, TrafficCamera } from '../types';
-import { CATEGORY_CONFIG, JAM_LEVEL_COLORS, JAM_DESCRIPTIONS } from '../constants';
+import { CATEGORY_CONFIG, JAM_LEVEL_COLORS, JAM_DESCRIPTIONS, CAMERA_REFRESH_COOLDOWN_SEC } from '../constants';
 import { createRoot } from 'react-dom/client';
 import { AlertTriangle, Camera, RefreshCw } from 'lucide-react';
 
@@ -29,7 +29,7 @@ const CameraPopup: React.FC<{ camera: TrafficCamera, onRefresh: (id: string) => 
     }, []);
 
     const elapsedSeconds = Math.floor((now - lastUpdated) / 1000);
-    const canRefresh = elapsedSeconds >= 60;
+    const canRefresh = elapsedSeconds >= CAMERA_REFRESH_COOLDOWN_SEC;
 
     const handleRefresh = async () => {
         if (!canRefresh || refreshing) return;
@@ -52,7 +52,7 @@ const CameraPopup: React.FC<{ camera: TrafficCamera, onRefresh: (id: string) => 
             <div className="flex justify-between items-center mb-2">
                 <div className="font-bold text-xs text-gray-700">Camera {camera.CameraID}</div>
                 <div className="text-[10px] text-gray-500">
-                    {elapsedSeconds < 60 ? `Updated ${elapsedSeconds}s ago` : 'Update available'}
+                    {elapsedSeconds < CAMERA_REFRESH_COOLDOWN_SEC ? `Updated ${elapsedSeconds}s ago` : 'Update available'}
                 </div>
             </div>
 
@@ -77,7 +77,7 @@ const CameraPopup: React.FC<{ camera: TrafficCamera, onRefresh: (id: string) => 
                 `}
             >
                 <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
-                {refreshing ? 'Refreshing...' : canRefresh ? 'Refresh Image' : `Wait ${60 - elapsedSeconds}s`}
+                {refreshing ? 'Refreshing...' : canRefresh ? 'Refresh Image' : `Wait ${CAMERA_REFRESH_COOLDOWN_SEC - elapsedSeconds}s`}
             </button>
         </div>
     );
@@ -87,6 +87,7 @@ export const IncidentMap: React.FC<IncidentMapProps> = ({ incidents, trafficData
     const mapContainer = useRef<HTMLDivElement>(null);
     const map = useRef<any>(null);
     const markers = useRef<any[]>([]);
+    const markerRoots = useRef<any[]>([]); // Track marker roots for cleanup
     const cameraMarkers = useRef<any[]>([]);
     const popup = useRef<any>(null); // Keep for legacy incidents (though can be refactored too)
     // We need to track popup roots to unmount them cleanly
@@ -256,9 +257,17 @@ export const IncidentMap: React.FC<IncidentMapProps> = ({ incidents, trafficData
     useEffect(() => {
         if (!map.current || mapError) return;
 
-        // Clear existing markers
+        // Clear existing markers and unmount roots
         markers.current.forEach(marker => marker.remove());
+        markerRoots.current.forEach(root => {
+            try {
+                root.unmount();
+            } catch (e) {
+                console.warn('Failed to unmount marker root:', e);
+            }
+        });
         markers.current = [];
+        markerRoots.current = [];
 
         if (incidents.length === 0) return;
 
@@ -302,6 +311,7 @@ export const IncidentMap: React.FC<IncidentMapProps> = ({ incidents, trafficData
             });
 
             markers.current.push(marker);
+            markerRoots.current.push(root); // Track root for cleanup
             bounds.extend([incident.location.x, incident.location.y]);
         });
 

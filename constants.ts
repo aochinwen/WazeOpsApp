@@ -4,6 +4,12 @@ import { TriangleAlert, Car, Construction, Ban, AlertCircle, Zap } from 'lucide-
 
 export const WAZE_FEED_URL = "https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/b9eb1444-6cef-4cbd-b681-2937ad70dc9c?format=1";
 
+// Polling and timing constants
+export const FEED_POLL_INTERVAL_MS = 300000; // 5 minutes
+export const CAMERA_REFRESH_COOLDOWN_SEC = 60; // 1 minute
+export const TOAST_AUTO_CLOSE_MS = 4000; // 4 seconds
+export const MAP_MODAL_INIT_DELAY_MS = 300; // 300ms for modal animation
+
 export const FEED_SOURCES = [
   {
     id: 'custom',
