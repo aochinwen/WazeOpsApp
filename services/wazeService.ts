@@ -62,26 +62,7 @@ export const fetchWazeIncidents = async (feedUrl: string): Promise<ManagedIncide
     status: IncidentStatus.NEW,
   }));
 
-  const jams: ManagedIncident[] = (data.jams || [])
-    .filter((jam: any) => jam.line && Array.isArray(jam.line) && jam.line.length > 0)
-    .map((jam: any) => ({
-      uuid: jam.uuid?.toString() || jam.id?.toString() || `jam-${Date.now()}-${Math.random()}`,
-      type: 'JAM',
-      subtype: jam.blockType === 'ROAD_CLOSED' ? 'ROAD_CLOSED_EVENT' : 'JAM_HEAVY_TRAFFIC',
-      street: jam.street,
-      city: jam.city,
-      country: jam.country,
-      location: jam.line[0],
-      reportRating: 0,
-      reliability: 5,
-      nThumbsUp: 0,
-      confidence: 0,
-      reportDescription: `Traffic Jam detected. Level: ${jam.level || 0}, Delay: ${jam.delay || 0}s`,
-      pubMillis: jam.pubMillis || Date.now(),
-      status: IncidentStatus.NEW,
-    }));
-
-  return [...alerts, ...jams];
+  return alerts;
 };
 
 export const fetchTrafficView = async (tvtUrl: string): Promise<WazeTrafficJam[]> => {

@@ -133,7 +133,7 @@ async function loadSecrets() {
 const mapLtaTypeToWaze = (ltaType) => {
     const t = ltaType.toLowerCase();
     if (t.includes('accident'))
-        return { type: 'ACCIDENT', subtype: 'ACCIDENT_Major' };
+        return { type: 'ACCIDENT', subtype: 'ACCIDENT_MAJOR' };
     if (t.includes('roadwork'))
         return { type: 'CONSTRUCTION', subtype: 'CONSTRUCTION' };
     if (t.includes('breakdown'))
@@ -306,6 +306,11 @@ exports.monitor = functions
         const newAlerts = alerts.filter(a => (now - a.pubMillis) < TIME_WINDOW);
         console.log(`[${source.name}] Found ${alerts.length} total, ${newAlerts.length} new.`);
         for (const alert of newAlerts) {
+            // Ignore JAM type notifications
+            if (alert.type === 'JAM') {
+                console.log(`[${source.name}] Skipping JAM notification for ${alert.uuid}`);
+                continue;
+            }
             await sendNotification(alert, source.name, source.id);
         }
     }
@@ -388,6 +393,18 @@ app.post('/summarize', async (req, res) => {
     const { incidents } = req.body;
     if (!incidents || !Array.isArray(incidents)) {
         res.status(400).json({ error: "Invalid incidents data" });
+        return;
+    }
+    // Validate incident structure
+    if (incidents.length === 0) {
+        res.status(400).json({ error: "Incidents array cannot be empty" });
+        return;
+    }
+    const isValidIncident = incidents.every((i) => i && typeof i === 'object' &&
+        (i.type || i.subtype) &&
+        (i.street || i.city));
+    if (!isValidIncident) {
+        res.status(400).json({ error: "Invalid incident structure" });
         return;
     }
     try {

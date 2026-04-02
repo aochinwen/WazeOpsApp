@@ -87,11 +87,21 @@ export interface ManagedIncident extends WazeAlert {
   assignee?: string;
 }
 
-export type FilterCategory = 'ALL' | 'ACCIDENT' | 'JAM' | 'HAZARD' | 'CONSTRUCTION' | 'ROAD_CLOSED';
+export type FilterCategory = 'ALL' | 'ACCIDENT' | 'HAZARD' | 'CONSTRUCTION' | 'ROAD_CLOSED';
 
 export interface TrafficCamera {
   CameraID: string;
   Latitude: number;
   Longitude: number;
   ImageLink: string;
+}
+
+export interface CCTVCamera {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  rtspUrl: string;
+  area: string;
+  device: string;
 }

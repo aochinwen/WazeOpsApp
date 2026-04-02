@@ -4,7 +4,7 @@ import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { AlertTriangle, RefreshCw, Search, ListFilter, LayoutDashboard, Map as MapIcon, Rss, Layers, Camera } from 'lucide-react';
 import { fetchWazeIncidents, fetchTrafficView, fetchTrafficCameras } from './services/wazeService';
 import { ManagedIncident, IncidentStatus, FilterCategory, WazeTrafficJam } from './types';
-import { CATEGORY_CONFIG, SUBTYPE_MAPPING, DEMO_ALERTS, FEED_SOURCES, FEED_POLL_INTERVAL_MS } from './constants';
+import { CATEGORY_CONFIG, SUBTYPE_MAPPING, DEMO_ALERTS, FEED_SOURCES, FEED_POLL_INTERVAL_MS, N105_CCTV_CAMERAS } from './constants';
 import { IncidentModal } from './components/IncidentModal';
 import { IncidentFilter } from './components/IncidentFilter';
 import { IncidentStats } from './components/IncidentStats';
@@ -469,6 +469,7 @@ function App() {
                 onSelect={setSelectedIncident}
                 trafficData={showTraffic ? trafficData : []}
                 cameras={showCameras ? cameras : []}
+                cctvCameras={activeFeedId === 'NSC-N105' ? N105_CCTV_CAMERAS : []}
                 onRefreshCamera={refreshCamera}
               />
             ) : (

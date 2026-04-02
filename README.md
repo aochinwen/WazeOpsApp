@@ -53,6 +53,33 @@ The backend has been migrated to **Firebase Cloud Functions**. It handles Waze f
     firebase functions:secrets:set INFISICAL
     ```
 
+### CCTV Cameras (go2rtc)
+
+N105 CCTV cameras use RTSP streams proxied through [go2rtc](https://github.com/AlexxIT/go2rtc) for browser playback via MP4 streaming. go2rtc is bundled into the backend Docker image and runs alongside the Express server.
+
+**Cloud Run (production):**
+go2rtc is automatically downloaded and started inside the Docker container. The Express server proxies video at `/api/stream.mp4?src=<camera_id>`. No extra setup needed — just deploy the backend.
+
+**Local development:**
+1.  Download go2rtc into the server directory:
+    ```bash
+    # Apple Silicon Mac
+    curl -L https://github.com/AlexxIT/go2rtc/releases/latest/download/go2rtc_mac_arm64.zip -o /tmp/go2rtc.zip \
+      && unzip -o /tmp/go2rtc.zip -d server/ && chmod +x server/go2rtc && rm /tmp/go2rtc.zip
+
+    # Intel Mac
+    curl -L https://github.com/AlexxIT/go2rtc/releases/latest/download/go2rtc_mac_amd64.zip -o /tmp/go2rtc.zip \
+      && unzip -o /tmp/go2rtc.zip -d server/ && chmod +x server/go2rtc && rm /tmp/go2rtc.zip
+    ```
+2.  Run it with the provided config:
+    ```bash
+    server/go2rtc -config server/go2rtc.yaml
+    ```
+
+**Network requirements:** The machine running go2rtc must have network access to the NVR at `128.106.192.66:554`.
+
+CCTV cameras appear automatically on the map when the **NSC-N105** feed is selected.
+
 ### Deployment
 
 **Frontend (GitHub Pages):**

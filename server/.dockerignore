@@ -1,0 +1,8 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+test-*.ts
+*.test.ts
+go2rtc
+go2rtc.yaml.bak

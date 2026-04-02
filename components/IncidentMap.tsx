@@ -1,9 +1,10 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { ManagedIncident, WazeTrafficJam, TrafficCamera } from '../types';
+import { ManagedIncident, WazeTrafficJam, TrafficCamera, CCTVCamera } from '../types';
 import { CATEGORY_CONFIG, JAM_LEVEL_COLORS, JAM_DESCRIPTIONS, CAMERA_REFRESH_COOLDOWN_SEC } from '../constants';
 import { createRoot } from 'react-dom/client';
-import { AlertTriangle, Camera, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Camera, RefreshCw, Video } from 'lucide-react';
+import { CCTVCameraPopup } from './CCTVCameraPopup';
 
 
 declare const mapboxgl: any;
@@ -12,6 +13,7 @@ interface IncidentMapProps {
     incidents: ManagedIncident[];
     trafficData?: WazeTrafficJam[];
     cameras?: TrafficCamera[];
+    cctvCameras?: CCTVCamera[];
     onSelect: (incident: ManagedIncident) => void;
     onRefreshCamera?: (cameraId: string) => Promise<string | null>;
 }
@@ -83,12 +85,13 @@ const CameraPopup: React.FC<{ camera: TrafficCamera, onRefresh: (id: string) => 
     );
 };
 
-export const IncidentMap: React.FC<IncidentMapProps> = ({ incidents, trafficData = [], cameras = [], onSelect, onRefreshCamera }) => {
+export const IncidentMap: React.FC<IncidentMapProps> = ({ incidents, trafficData = [], cameras = [], cctvCameras = [], onSelect, onRefreshCamera }) => {
     const mapContainer = useRef<HTMLDivElement>(null);
     const map = useRef<any>(null);
     const markers = useRef<any[]>([]);
     const markerRoots = useRef<any[]>([]); // Track marker roots for cleanup
     const cameraMarkers = useRef<any[]>([]);
+    const cctvMarkers = useRef<any[]>([]);
     const popup = useRef<any>(null); // Keep for legacy incidents (though can be refactored too)
     // We need to track popup roots to unmount them cleanly
     const popupRoots = useRef<Map<any, any>>(new Map());
@@ -424,6 +427,100 @@ export const IncidentMap: React.FC<IncidentMapProps> = ({ incidents, trafficData
         });
 
     }, [cameras, mapError, onRefreshCamera]);
+
+    // Update CCTV Camera Markers (N105 RTSP cameras via go2rtc)
+    useEffect(() => {
+        if (!map.current || mapError || !isMapLoaded) return;
+
+        const existingMap = new Map();
+        cctvMarkers.current.forEach((marker: any) => {
+            if (marker._cctvId) {
+                existingMap.set(marker._cctvId, marker);
+            }
+        });
+
+        const newCctvIds = new Set(cctvCameras.map(c => c.id));
+
+        // Remove markers no longer in the list
+        cctvMarkers.current = cctvMarkers.current.filter((marker: any) => {
+            if (!newCctvIds.has(marker._cctvId)) {
+                const popup = marker.getPopup();
+                if (popup && popupRoots.current.has(popup)) {
+                    popupRoots.current.get(popup).unmount();
+                    popupRoots.current.delete(popup);
+                }
+                marker.remove();
+                return false;
+            }
+            return true;
+        });
+
+        // Add new CCTV markers
+        let added = 0;
+        const bounds = cctvCameras.length > 0 ? new mapboxgl.LngLatBounds() : null;
+
+        cctvCameras.forEach(cam => {
+            if (existingMap.has(cam.id)) return;
+
+            const el = document.createElement('div');
+            el.className = 'marker-cctv';
+
+            const root = createRoot(el);
+            root.render(
+                <div
+                    className="p-1.5 rounded-full bg-emerald-50 border border-emerald-300 shadow-sm cursor-pointer hover:bg-emerald-100 hover:scale-110 transition-transform text-emerald-700"
+                    title={cam.name}
+                >
+                    <Video size={14} />
+                </div>
+            );
+
+            const marker = new mapboxgl.Marker(el)
+                .setLngLat([cam.longitude, cam.latitude])
+                .addTo(map.current);
+
+            marker._cctvId = cam.id;
+
+            const popupNode = document.createElement('div');
+            const popupRoot = createRoot(popupNode);
+
+            const renderPopup = (active: boolean) => {
+                popupRoot.render(
+                    <CCTVCameraPopup
+                        camera={cam}
+                        active={active}
+                        onStreamError={() => {
+                            el.style.opacity = '0.25';
+                            el.style.filter = 'grayscale(100%)';
+                        }}
+                    />
+                );
+            };
+
+            renderPopup(false);
+
+            const popup = new mapboxgl.Popup({ offset: 25, maxWidth: '340px' })
+                .setDOMContent(popupNode);
+
+            popup.on('open', () => setTimeout(() => renderPopup(true), 0));
+            popup.on('close', () => setTimeout(() => renderPopup(false), 0));
+
+            popupRoots.current.set(popup, popupRoot);
+            marker.setPopup(popup);
+            cctvMarkers.current.push(marker);
+            added++;
+            if (bounds) bounds.extend([cam.longitude, cam.latitude]);
+        });
+
+        // Zoom map to show CCTV cameras when newly added
+        if (added > 0 && bounds) {
+            try {
+                map.current.fitBounds(bounds, { padding: 60, maxZoom: 16 });
+            } catch (e) {
+                console.warn('[CCTV Debug] fitBounds failed:', e);
+            }
+        }
+    }, [cctvCameras, mapError, isMapLoaded]);
 
     if (mapError) {
         // Fallback Static Map Construction

@@ -157,6 +157,12 @@ class WazeMonitor {
       console.log(`[WazeMonitor] [${source.name}] Found ${newAlerts.length} new incidents.`);
       for (const alert of newAlerts) {
         this.seenIncidents.add(alert.uuid);
+        
+        if (alert.type === 'JAM') {
+          console.log(`[WazeMonitor] [${source.name}] Skipping JAM notification for ${alert.uuid}`);
+          continue;
+        }
+        
         await this.sendNotification(alert, source);
       }
     } else {
@@ -369,6 +375,72 @@ app.get('/feed/lta', async (req, res) => {
     res.json({ alerts });
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch LTA data" });
+  }
+});
+
+// --- go2rtc Proxy Endpoints ---
+const GO2RTC_URL = process.env.GO2RTC_URL || 'http://localhost:1984';
+
+// POST /webrtc - Proxy WebRTC signaling to go2rtc
+app.post('/webrtc', async (req, res) => {
+  const src = req.query.src as string;
+  if (!src) return res.status(400).json({ error: 'Missing src parameter' });
+
+  try {
+    const response = await axios.post(
+      `${GO2RTC_URL}/api/webrtc?src=${encodeURIComponent(src)}`,
+      req.body,
+      {
+        headers: { 'Content-Type': 'application/sdp' },
+        responseType: 'text',
+        transformRequest: [(data) => (typeof data === 'string' ? data : JSON.stringify(data))],
+      }
+    );
+    res.set('Content-Type', 'application/sdp');
+    res.send(response.data);
+  } catch (error: any) {
+    console.error("go2rtc WebRTC proxy error:", error.message);
+    res.status(502).json({ error: "Failed to connect to go2rtc" });
+  }
+});
+
+// GET /stream.mp4 - Proxy HLS/MP4 stream from go2rtc (mobile-friendly)
+app.get('/stream.mp4', async (req, res) => {
+  const src = req.query.src as string;
+  if (!src) return res.status(400).json({ error: 'Missing src parameter' });
+
+  try {
+    const response = await axios.get(
+      `${GO2RTC_URL}/api/stream.mp4?src=${encodeURIComponent(src)}`,
+      { responseType: 'stream' }
+    );
+
+    res.set('Content-Type', response.headers['content-type'] || 'video/mp4');
+    res.set('Transfer-Encoding', 'chunked');
+    response.data.pipe(res);
+  } catch (error: any) {
+    console.error("go2rtc stream proxy error:", error.message);
+    res.status(502).json({ error: "Failed to proxy stream from go2rtc" });
+  }
+});
+
+// GET /snapshot - Proxy JPEG snapshot from go2rtc RTSP stream
+app.get('/snapshot', async (req, res) => {
+  const src = req.query.src as string;
+  if (!src) return res.status(400).json({ error: 'Missing src parameter' });
+
+  try {
+    const response = await axios.get(
+      `${GO2RTC_URL}/api/frame.jpeg?src=${encodeURIComponent(src)}`,
+      { responseType: 'arraybuffer', timeout: 25000 }
+    );
+
+    res.set('Content-Type', 'image/jpeg');
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.send(Buffer.from(response.data));
+  } catch (error: any) {
+    console.error("go2rtc snapshot proxy error:", error.message);
+    res.status(502).json({ error: "Failed to capture snapshot from go2rtc" });
   }
 });
 

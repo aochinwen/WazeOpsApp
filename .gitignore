@@ -23,3 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 .env.local
+
+# go2rtc binary (downloaded separately)
+server/go2rtc

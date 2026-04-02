@@ -1,5 +1,5 @@
 
-import { FilterCategory } from './types';
+import { FilterCategory, CCTVCamera } from './types';
 import { TriangleAlert, Car, Construction, Ban, AlertCircle, Zap } from 'lucide-react';
 
 export const WAZE_FEED_URL = "https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/b9eb1444-6cef-4cbd-b681-2937ad70dc9c?format=1";
@@ -123,7 +123,6 @@ export const JAM_DESCRIPTIONS: Record<number, string> = {
 
 export const CATEGORY_CONFIG: Record<string, { label: string; color: string; icon: any; bg: string; hex: string }> = {
   ACCIDENT: { label: 'Accident', color: 'text-red-600', icon: TriangleAlert, bg: 'bg-red-50', hex: '#dc2626' },
-  JAM: { label: 'Traffic Jam', color: 'text-orange-500', icon: Car, bg: 'bg-orange-50', hex: '#f97316' },
   WEATHERHAZARD: { label: 'Hazard', color: 'text-yellow-600', icon: Zap, bg: 'bg-yellow-50', hex: '#ca8a04' },
   HAZARD: { label: 'Hazard', color: 'text-yellow-600', icon: AlertCircle, bg: 'bg-yellow-50', hex: '#ca8a04' },
   CONSTRUCTION: { label: 'Construction', color: 'text-blue-600', icon: Construction, bg: 'bg-blue-50', hex: '#2563eb' },
@@ -135,10 +134,6 @@ export const CATEGORY_CONFIG: Record<string, { label: string; color: string; ico
 export const SUBTYPE_MAPPING: Record<string, string> = {
   'ACCIDENT_MINOR': 'Minor Accident',
   'ACCIDENT_MAJOR': 'Major Accident',
-  'JAM_MODERATE_TRAFFIC': 'Moderate Traffic',
-  'JAM_HEAVY_TRAFFIC': 'Heavy Traffic',
-  'JAM_STAND_STILL_TRAFFIC': 'Standstill Traffic',
-  'JAM_LIGHT_TRAFFIC': 'Light Traffic',
   'HAZARD_ON_ROAD': 'Object on Road',
   'HAZARD_ON_ROAD_CONSTRUCTION': 'Construction Hazard',
   'HAZARD_ON_SHOULDER': 'Vehicle on Shoulder',
@@ -165,10 +160,32 @@ export const SUBTYPE_MAPPING: Record<string, string> = {
 export const FILTERS: { id: FilterCategory; label: string }[] = [
   { id: 'ALL', label: 'All Incidents' },
   { id: 'ACCIDENT', label: 'Accidents' },
-  { id: 'JAM', label: 'Jams' },
   { id: 'HAZARD', label: 'Hazards' },
   { id: 'CONSTRUCTION', label: 'Roadworks' },
   { id: 'ROAD_CLOSED', label: 'Closures' },
+];
+
+export const N105_CCTV_CAMERAS: CCTVCamera[] = [
+  { id: 'N105_01', name: 'Thomson Rd Bef Essex Rd SB SJIJ', latitude: 1.317134, longitude: 103.8446, rtspUrl: 'rtsp://LTA operator:LTAN105*@128.106.192.66:554/streaming/channels/101', area: 'N105', device: 'N105_01' },
+  { id: 'N105_02', name: 'Thomson Rd SB Birmingham Man', latitude: 1.317974, longitude: 103.8441, rtspUrl: 'rtsp://LTA operator:LTAN105*5@128.106.192.66:554/streaming/channels/201', area: 'N105', device: 'N105_02' },
+  { id: 'N105_03', name: 'NT & TM NB', latitude: 1.319287, longitude: 103.8432, rtspUrl: 'rtsp://LTA operator:LTAN105*@128.106.192.66:554/streaming/channels/301', area: 'N105', device: 'N105_03' },
+  { id: 'N105_04', name: 'Moulmein Rd Thomson Euro Asia', latitude: 1.318333, longitude: 103.846, rtspUrl: 'rtsp://LTA operator:LTAN105*@128.106.192.66:554/streaming/channels/401', area: 'N105', device: 'N105_04' },
+  { id: 'N105_05', name: 'Launching Shaft', latitude: 1.319858, longitude: 103.8427, rtspUrl: 'rtsp://LTA operator:LTAN105*@128.106.192.66:554/streaming/channels/501', area: 'N105', device: 'N105_05' },
+  { id: 'N105_06', name: 'POB4 Moulmein Thomson Rd SB', latitude: 1.318932, longitude: 103.8436, rtspUrl: 'rtsp://LTA operator:LTAN105*@128.106.192.66:554/streaming/channels/601', area: 'N105', device: 'N105_06' },
+  { id: 'N105_07', name: 'Irrawady Thomson Rd Junction', latitude: 1.320951, longitude: 103.8427, rtspUrl: 'rtsp://LTA operator:LTAN105*@128.106.192.66:554/streaming/channels/701', area: 'N105', device: 'N105_07' },
+  { id: 'N105_08', name: 'Thomson Rd NB United Sq', latitude: 1.316702, longitude: 103.8444, rtspUrl: 'rtsp://LTA operator:LTAN105*@128.106.192.66:554/streaming/channels/801', area: 'N105', device: 'N105_08' },
+  { id: 'N105_09', name: 'Thomson Rd Bef Essex Rd Bus Stop', latitude: 1.316684, longitude: 103.8447, rtspUrl: 'rtsp://LTA operator:LTAN105*@128.106.192.66:554/streaming/channels/901', area: 'N105', device: 'N105_09' },
+  { id: 'N105_10', name: 'Thomson Rd NB Royal Sq', latitude: 1.319598, longitude: 103.8432, rtspUrl: 'rtsp://LTA operator:LTAN105*@128.106.192.66:554/streaming/channels/1001', area: 'N105', device: 'N105_10' },
+  { id: 'N105_11', name: 'Thomson Rd NB Shell Stn', latitude: 1.324053, longitude: 103.842, rtspUrl: 'rtsp://LTA operator:LTAN105*@128.106.192.66:554/streaming/channels/1101', area: 'N105', device: 'N105_11' },
+  { id: 'N105_12', name: 'Newton Rd IFO IRAS', latitude: 1.318528, longitude: 103.842, rtspUrl: 'rtsp://LTA operator:LTAN105*@128.106.192.66:554/streaming/channels/1201', area: 'N105', device: 'N105_12' },
+  { id: 'N105_13', name: 'POB4 S Newton Rd Junct', latitude: 1.319145, longitude: 103.8438, rtspUrl: 'rtsp://LTA operator:LTAN105*@128.106.192.66:554/streaming/channels/1301', area: 'N105', device: 'N105_13' },
+  { id: 'N105_14', name: 'Thomson Rd IFO IRAS', latitude: 1.319764, longitude: 103.843, rtspUrl: 'rtsp://LTA operator:LTAN105*@128.106.192.66:554/streaming/channels/1401', area: 'N105', device: 'N105_14' },
+  { id: 'N105_15', name: 'Thomson Rd Chancery Lane Junct', latitude: 1.322422, longitude: 103.8416, rtspUrl: 'rtsp://LTA operator:LTAN105*@128.106.192.66:554/streaming/channels/1501', area: 'N105', device: 'N105_15' },
+  { id: 'N105_16', name: 'Thomson Rd Jalan Merlimau Junct', latitude: 1.323146, longitude: 103.8415, rtspUrl: 'rtsp://LTA operator:LTAN105*@128.106.192.66:554/streaming/channels/1601', area: 'N105', device: 'N105_16' },
+  { id: 'N105_17', name: 'Thomson Rd SB Novena Court', latitude: 1.322705, longitude: 103.8418, rtspUrl: 'rtsp://LTA operator:LTAN105*@128.106.192.66:554/streaming/channels/1701', area: 'N105', device: 'N105_17' },
+  { id: 'N105_18', name: 'Rooftop Double T Junction', latitude: 1.317845, longitude: 103.8445, rtspUrl: 'rtsp://LTA operator:LTAN105*@128.106.192.66:554/streaming/channels/1801', area: 'N105', device: 'N105_18' },
+  { id: 'N105_19', name: 'POB 1 Thomson Rd SB Velocity SB', latitude: 1.320495, longitude: 103.8426, rtspUrl: 'rtsp://LTA operator:LTAN105*@128.106.192.66:554/streaming/channels/1901', area: 'N105', device: 'N105_19' },
+  { id: 'N105_20', name: 'POB 1 Thomson Rd NB Irrawaddy', latitude: 1.32054, longitude: 103.8425, rtspUrl: 'rtsp://LTA operator:LTAN105*@128.106.192.66:554/streaming/channels/2001', area: 'N105', device: 'N105_20' },
 ];
 
 export const DEMO_ALERTS = [
@@ -184,19 +201,6 @@ export const DEMO_ALERTS = [
     reliability: 8,
     nThumbsUp: 5,
     pubMillis: Date.now() - 1000 * 60 * 15
-  },
-  {
-    uuid: "demo-2",
-    type: "JAM",
-    subtype: "JAM_HEAVY_TRAFFIC",
-    street: "101 S",
-    city: "San Jose",
-    country: "US",
-    location: { x: -121.88, y: 37.33 },
-    reportRating: 3,
-    reliability: 6,
-    nThumbsUp: 1,
-    pubMillis: Date.now() - 1000 * 60 * 45
   },
   {
     uuid: "demo-3",
