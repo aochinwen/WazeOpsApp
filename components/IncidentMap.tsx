@@ -464,16 +464,9 @@ export const IncidentMap: React.FC<IncidentMapProps> = ({ incidents, trafficData
 
             const el = document.createElement('div');
             el.className = 'marker-cctv';
-
-            const root = createRoot(el);
-            root.render(
-                <div
-                    className="p-1.5 rounded-full bg-emerald-50 border border-emerald-300 shadow-sm cursor-pointer hover:bg-emerald-100 hover:scale-110 transition-transform text-emerald-700"
-                    title={cam.name}
-                >
-                    <Video size={14} />
-                </div>
-            );
+            el.title = cam.name;
+            el.style.cssText = 'cursor:pointer;padding:6px;border-radius:9999px;background:#ecfdf5;border:1px solid #6ee7b7;box-shadow:0 1px 2px rgba(0,0,0,0.05);display:flex;align-items:center;justify-content:center;';
+            el.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.934a.5.5 0 0 0-.777-.416L16 11"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg>';
 
             const marker = new mapboxgl.Marker(el)
                 .setLngLat([cam.longitude, cam.latitude])
