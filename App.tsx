@@ -1,9 +1,10 @@
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { AlertTriangle, RefreshCw, Search, ListFilter, LayoutDashboard, Map as MapIcon, Rss, Layers, Camera } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Search, ListFilter, LayoutDashboard, Map as MapIcon } from 'lucide-react';
 import { fetchWazeIncidents, fetchTrafficView, fetchTrafficCameras } from './services/wazeService';
 import { ManagedIncident, IncidentStatus, FilterCategory, WazeTrafficJam } from './types';
+import { FeedSelector } from './components/FeedSelector';
 import { CATEGORY_CONFIG, SUBTYPE_MAPPING, DEMO_ALERTS, FEED_SOURCES, FEED_POLL_INTERVAL_MS, N105_CCTV_CAMERAS } from './constants';
 import { IncidentModal } from './components/IncidentModal';
 import { IncidentFilter } from './components/IncidentFilter';
@@ -17,38 +18,43 @@ function App() {
   const navigate = useNavigate();
   const [incidents, setIncidents] = useState<ManagedIncident[]>([]);
   const [trafficData, setTrafficData] = useState<WazeTrafficJam[]>([]);
-  const [showTraffic, setShowTraffic] = useState(false);
+  // Ref always reflects the latest activeFeedIds so async callbacks can guard against stale results
+  const activeFeedIdsRef = useRef<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingTraffic, setLoadingTraffic] = useState(false);
 
   const [selectedIncident, setSelectedIncident] = useState<ManagedIncident | null>(null);
   const [filter, setFilter] = useState<FilterCategory>('ALL');
   const [search, setSearch] = useState('');
-  const [viewMode, setViewMode] = useState<'LIST' | 'GRID' | 'MAP'>('LIST');
+  const [viewMode, setViewMode] = useState<'LIST' | 'GRID' | 'MAP'>('MAP');
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   // Feed State
-  // Feed State
-  const [activeFeedId, setActiveFeedId] = useState<string>(() => {
-    // Robust init: Check both react-router location and window hash directly
+  const [activeFeedIds, setActiveFeedIds] = useState<string[]>(() => {
+
     const getSourceFromStr = (searchStr: string) => new URLSearchParams(searchStr).get('source');
 
-    let src = getSourceFromStr(location.search);
-
-    // Fallback: Manually parse hash if react-router hasn't populated search yet
-    if (!src && window.location.hash.includes('?')) {
+    let srcStr = getSourceFromStr(location.search);
+    if (!srcStr && window.location.hash.includes('?')) {
       const hashSearch = window.location.hash.split('?')[1];
-      src = new URLSearchParams(hashSearch).get('source');
+      srcStr = new URLSearchParams(hashSearch).get('source');
     }
 
-    if (src && FEED_SOURCES.some(s => s.id === src)) {
-      console.log(`[App] Initializing with feed: ${src}`);
-      return src;
+    if (srcStr) {
+      const ids = srcStr.split(',').filter(id => FEED_SOURCES.some(s => s.id === id));
+      if (ids.length > 0) {
+        console.log(`[App] Initializing with feeds: ${ids.join(', ')}`);
+        return ids;
+      }
     }
     console.log(`[App] Initializing with default feed: ${FEED_SOURCES[1].id}`);
-    return FEED_SOURCES[1].id;
+    return [FEED_SOURCES[1].id];
   });
   const [customFeedUrl, setCustomFeedUrl] = useState<string>('');
+  // Keep ref in sync so async closures can read the latest value
+  useEffect(() => {
+    activeFeedIdsRef.current = activeFeedIds;
+  }, [activeFeedIds]);
 
   const addToast = useCallback((message: string, type: ToastType) => {
     setToasts(prev => [...prev, { id: Date.now(), message, type }]);
@@ -73,27 +79,25 @@ function App() {
     });
   };
 
-  const getEffectiveFeedUrl = useCallback(() => {
-    if (activeFeedId === 'custom') return customFeedUrl;
-    const source = FEED_SOURCES.find(s => s.id === activeFeedId);
-    return source ? source.url : '';
-  }, [activeFeedId, customFeedUrl]);
+  const getEffectiveFeedUrls = useCallback((): string[] => {
+    return activeFeedIds.flatMap(id => {
+      if (id === 'custom') return customFeedUrl ? [customFeedUrl] : [];
+      const source = FEED_SOURCES.find(s => s.id === id);
+      return source && source.url ? [source.url] : [];
+    });
+  }, [activeFeedIds, customFeedUrl]);
 
-  const getEffectiveTrafficUrl = useCallback(() => {
-    // Determine TVT URL based on active feed
-    const source = FEED_SOURCES.find(s => s.id === activeFeedId);
-    // Even for custom, we check if there's a corresponding known TVT ID or fallback
-    if (activeFeedId === 'custom') {
-      // Using the fallback/default custom ID provided in requirements
-      return FEED_SOURCES.find(s => s.id === 'custom')?.tvtUrl || '';
-    }
-    return source ? source.tvtUrl : '';
-  }, [activeFeedId]);
+  const getEffectiveTrafficUrls = useCallback((): string[] => {
+    return activeFeedIds.flatMap(id => {
+      const source = FEED_SOURCES.find(s => s.id === id);
+      return source && source.tvtUrl ? [source.tvtUrl] : [];
+    });
+  }, [activeFeedIds]);
 
   const loadData = async (isManual = false) => {
-    const url = getEffectiveFeedUrl();
-    if (!url) {
-      if (activeFeedId === 'custom' && isManual) {
+    const urls = getEffectiveFeedUrls();
+    if (urls.length === 0) {
+      if (activeFeedIds.includes('custom') && isManual) {
         addToast("Please enter a valid feed URL", 'error');
       }
       return;
@@ -101,25 +105,37 @@ function App() {
 
     setLoading(true);
     try {
-      const data = await fetchWazeIncidents(url);
-      processData(data);
-      if (isManual) {
-        addToast("Feed updated successfully", 'success');
+      const settled = await Promise.allSettled(urls.map(url => fetchWazeIncidents(url)));
+      // Guard: discard result if feeds were cleared while request was in-flight
+      if (activeFeedIdsRef.current.length === 0) return;
+
+      const failedCount = settled.filter(r => r.status === 'rejected').length;
+      if (failedCount > 0) {
+        console.warn(`[Feed] ${failedCount}/${urls.length} feed(s) failed to load`);
+        settled.forEach((r, i) => {
+          if (r.status === 'rejected') console.warn(`  Feed ${i + 1} (${urls[i]}): ${r.reason}`);
+        });
+        if (failedCount === urls.length) {
+          addToast(`All ${urls.length} feed(s) failed to load`, 'error');
+        } else {
+          addToast(`${failedCount} of ${urls.length} feed(s) failed — showing partial data`, 'error');
+        }
       }
 
-      // If traffic toggle is on, fetch traffic data too
-      if (showTraffic) {
+      const allIncidents = settled
+        .filter((r): r is PromiseFulfilledResult<ManagedIncident[]> => r.status === 'fulfilled')
+        .flatMap(r => r.value);
+
+      if (allIncidents.length > 0 || failedCount < urls.length) {
+        const merged = Array.from(
+          new Map(allIncidents.map(item => [item.uuid, item])).values()
+        ) as ManagedIncident[];
+        processData(merged);
+        if (isManual && failedCount === 0) {
+          addToast("Feed updated successfully", 'success');
+        }
         loadTrafficData();
-      }
-
-    } catch (error: any) {
-      console.error("Feed Fetch Error:", error);
-      const errorMessage = error.message === 'Failed to fetch'
-        ? "Network error: Unable to connect to Waze feed. Likely CORS restriction."
-        : `Error fetching feed: ${error.message}`;
-      addToast(errorMessage, 'error');
-
-      if (incidents.length === 0) {
+      } else if (incidents.length === 0) {
         addToast("Loaded demo data for visualization", 'info');
         const demoData = DEMO_ALERTS.map(alert => ({
           ...alert,
@@ -135,41 +151,41 @@ function App() {
   };
 
   const loadTrafficData = async () => {
-    const tvtUrl = getEffectiveTrafficUrl();
-    if (!tvtUrl) return;
+    const tvtUrls = getEffectiveTrafficUrls();
+    if (tvtUrls.length === 0) return;
 
     setLoadingTraffic(true);
     try {
-      const jams = await fetchTrafficView(tvtUrl);
+      const settled = await Promise.allSettled(tvtUrls.map(url => fetchTrafficView(url)));
+      // Guard: discard result if feeds were cleared while request was in-flight
+      if (activeFeedIdsRef.current.length === 0) return;
+
+      settled.forEach((r, i) => {
+        if (r.status === 'rejected') console.warn(`[Traffic] TVT feed ${i + 1} (${tvtUrls[i]}) failed:`, r.reason);
+      });
+
+      const jams = settled
+        .filter((r): r is PromiseFulfilledResult<WazeTrafficJam[]> => r.status === 'fulfilled')
+        .flatMap(r => r.value);
       setTrafficData(jams);
     } catch (e: any) {
       console.error("Traffic View Error", e);
       addToast("Failed to load traffic view data", 'error');
-      // Don't disable toggle, just show error
     } finally {
       setLoadingTraffic(false);
     }
   };
 
-  const toggleTrafficView = () => {
-    const newState = !showTraffic;
-    setShowTraffic(newState);
-    if (newState) {
-      loadTrafficData();
-    } else {
-      setTrafficData([]);
-    }
-  };
-
-  // Re-fetch traffic if feed changes while enabled
+  // Re-fetch traffic whenever selected feeds change; clear when no feeds selected
   useEffect(() => {
-    if (showTraffic) {
-      loadTrafficData();
+    if (activeFeedIds.length === 0) {
+      setTrafficData([]);
+      return;
     }
-  }, [activeFeedId]);
+    loadTrafficData();
+  }, [activeFeedIds]);
 
   // Camera State
-  const [showCameras, setShowCameras] = useState(false);
   const [cameras, setCameras] = useState<any[]>([]);
   const [loadingCameras, setLoadingCameras] = useState(false);
 
@@ -177,22 +193,14 @@ function App() {
     setLoadingCameras(true);
     try {
       const data = await fetchTrafficCameras();
+      // Guard: discard result if feeds were cleared while request was in-flight
+      if (activeFeedIdsRef.current.length === 0) return;
       setCameras(data);
     } catch (e) {
       console.error(e);
       addToast("Failed to load traffic cameras", 'error');
     } finally {
       setLoadingCameras(false);
-    }
-  };
-
-  const toggleCameras = () => {
-    const newState = !showCameras;
-    setShowCameras(newState);
-    if (newState) {
-      loadCameras();
-    } else {
-      setCameras([]);
     }
   };
 
@@ -215,33 +223,46 @@ function App() {
     }
   };
 
-  // Initial load
+  // Initial load (traffic + cameras also loaded via loadData)
   useEffect(() => {
-    if (activeFeedId !== 'custom') {
-      loadData(false);
+    if (activeFeedIds.length === 0) {
+      setIncidents([]);
+      setCameras([]);
+      return;
     }
-  }, [activeFeedId]);
+    const hasNonCustom = activeFeedIds.some(id => id !== 'custom');
+    if (hasNonCustom) {
+      loadData(false);
+      loadCameras();
+    }
+  }, [activeFeedIds]);
 
-  // Polling every 2 minutes
+  // Polling every 5 minutes
   useEffect(() => {
     const interval = setInterval(() => {
-      if (activeFeedId !== 'custom' || customFeedUrl) {
+      const hasNonCustom = activeFeedIds.some(id => id !== 'custom');
+      if (hasNonCustom || customFeedUrl) {
         loadData(false);
       }
     }, 300000);
     return () => clearInterval(interval);
-  }, [activeFeedId, customFeedUrl]);
+  }, [activeFeedIds, customFeedUrl]);
 
   // Handle URL Routing for specific incident
   useEffect(() => {
     // Check for source parameter in URL
     const searchParams = new URLSearchParams(location.search);
-    const sourceId = searchParams.get('source');
-
-    // If source provided and different from active, switch feed first
-    if (sourceId && sourceId !== activeFeedId && FEED_SOURCES.some(s => s.id === sourceId)) {
-      setActiveFeedId(sourceId);
-      return; // Wait for feed to load
+    const sourceStr = searchParams.get('source');
+    if (sourceStr) {
+      const ids = sourceStr.split(',').filter(id => FEED_SOURCES.some(s => s.id === id));
+      if (ids.length > 0) {
+        const currentStr = activeFeedIds.slice().sort().join(',');
+        const newStr = ids.slice().sort().join(',');
+        if (currentStr !== newStr) {
+          setActiveFeedIds(ids);
+          return;
+        }
+      }
     }
 
     if (incidentId) {
@@ -340,33 +361,15 @@ function App() {
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
                 {/* Feed Source Selector */}
                 <div className="flex items-center gap-2">
-                  <div className="relative">
-                    <Rss className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <select
-                      value={activeFeedId}
-                      onChange={(e) => {
-                        const newSource = e.target.value;
-                        setActiveFeedId(newSource);
-                        navigate({ pathname: '/', search: `?source=${newSource}` });
-                      }}
-                      className="pl-9 pr-8 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none shadow-sm cursor-pointer"
-                      style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em' }}
-                    >
-                      {FEED_SOURCES.map(source => (
-                        <option key={source.id} value={source.id}>{source.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {activeFeedId === 'custom' && (
-                    <input
-                      type="text"
-                      placeholder="Enter Waze JSON Feed URL..."
-                      value={customFeedUrl}
-                      onChange={(e) => setCustomFeedUrl(e.target.value)}
-                      className="w-full sm:w-48 px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all"
-                    />
-                  )}
+                  <FeedSelector
+                    selectedIds={activeFeedIds}
+                    onChange={(ids) => {
+                      setActiveFeedIds(ids);
+                      navigate({ pathname: '/', search: `?source=${ids.join(',')}` });
+                    }}
+                    customFeedUrl={customFeedUrl}
+                    onCustomFeedUrlChange={setCustomFeedUrl}
+                  />
                 </div>
 
                 <button
@@ -405,35 +408,6 @@ function App() {
               </span>
 
               <div className="flex items-center gap-4 self-end sm:self-center">
-                {viewMode === 'MAP' && (
-                  <>
-                    <button
-                      onClick={toggleTrafficView}
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-sm font-medium
-                            ${showTraffic
-                          ? 'bg-orange-50 border-orange-200 text-orange-700'
-                          : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}
-                        `}
-                    >
-                      <Layers size={16} className={loadingTraffic ? 'animate-spin' : ''} />
-                      Traffic View {showTraffic ? 'On' : 'Off'}
-                    </button>
-
-                    <button
-                      onClick={toggleCameras}
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-sm font-medium
-                            ${showCameras
-                          ? 'bg-blue-50 border-blue-200 text-blue-700'
-                          : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}
-                        `}
-                    >
-                      <div className={`transition-transform ${loadingCameras ? 'animate-pulse' : ''}`}>
-                        <Camera size={16} />
-                      </div>
-                      Traffic Camera {showCameras ? 'On' : 'Off'}
-                    </button>
-                  </>
-                )}
 
                 {/* View Switcher */}
                 <div className="flex bg-gray-100 p-1 rounded-lg">
@@ -467,9 +441,10 @@ function App() {
               <IncidentMap
                 incidents={filteredIncidents}
                 onSelect={setSelectedIncident}
-                trafficData={showTraffic ? trafficData : []}
-                cameras={showCameras ? cameras : []}
-                cctvCameras={activeFeedId === 'NSC-N105' ? N105_CCTV_CAMERAS : []}
+                trafficData={trafficData}
+                cameras={cameras}
+                cctvCameras={activeFeedIds.includes('NSC-N105') ? N105_CCTV_CAMERAS : []}
+                activeFeedIds={activeFeedIds}
                 onRefreshCamera={refreshCamera}
               />
             ) : (
@@ -516,7 +491,7 @@ function App() {
                 </p>
                 <button
                   onClick={async () => {
-                    const currentSource = FEED_SOURCES.find(s => s.id === activeFeedId) || FEED_SOURCES[0];
+                    const currentSource = FEED_SOURCES.find(s => s.id === activeFeedIds[0]) || FEED_SOURCES[0];
 
                     let slug = 'road_incident';
                     if (currentSource.id === 'thomson') slug = 'Thompson_Road';

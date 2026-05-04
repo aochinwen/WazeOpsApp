@@ -284,9 +284,37 @@ app.get('/proxy', async (req, res) => {
     }
 });
 
+// --- Analytics Proxy (bypasses ad blockers) ---
+const GA_MEASUREMENT_ID = "G-XFSR6YPS27";
+const GA_API_SECRET = process.env.GA_API_SECRET || "";
+
+app.post('/collect', async (req, res) => {
+    const { client_id, events } = req.body;
+    if (!client_id || !Array.isArray(events)) {
+        res.status(400).json({ error: "Invalid payload" });
+        return;
+    }
+    if (!GA_API_SECRET) {
+        console.warn("[Analytics] GA_API_SECRET not set, skipping forward");
+        res.status(200).json({ ok: true, forwarded: false });
+        return;
+    }
+    try {
+        await axios.post(
+            `https://www.google-analytics.com/mp/collect?measurement_id=${GA_MEASUREMENT_ID}&api_secret=${GA_API_SECRET}`,
+            { client_id, events },
+            { headers: { 'Content-Type': 'application/json' } }
+        );
+        res.json({ ok: true, forwarded: true });
+    } catch (e: any) {
+        console.error("[Analytics] Forward error:", e.message);
+        res.status(502).json({ error: "Forward failed" });
+    }
+});
+
 // Bind express app to /api
 exports.api = functions
-    .runWith({ secrets: ["INFISICAL"] })
+    .runWith({ secrets: ["INFISICAL", "GA_API_SECRET"] })
     .https.onRequest(app);
 
 // Scheduled Monitor

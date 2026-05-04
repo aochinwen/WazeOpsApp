@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { ManagedIncident, WazeTrafficJam, TrafficCamera, CCTVCamera } from '../types';
 import { CATEGORY_CONFIG, JAM_LEVEL_COLORS, JAM_DESCRIPTIONS, CAMERA_REFRESH_COOLDOWN_SEC } from '../constants';
 import { createRoot } from 'react-dom/client';
@@ -14,6 +14,7 @@ interface IncidentMapProps {
     trafficData?: WazeTrafficJam[];
     cameras?: TrafficCamera[];
     cctvCameras?: CCTVCamera[];
+    activeFeedIds?: string[];
     onSelect: (incident: ManagedIncident) => void;
     onRefreshCamera?: (cameraId: string) => Promise<string | null>;
 }
@@ -85,7 +86,7 @@ const CameraPopup: React.FC<{ camera: TrafficCamera, onRefresh: (id: string) => 
     );
 };
 
-export const IncidentMap: React.FC<IncidentMapProps> = ({ incidents, trafficData = [], cameras = [], cctvCameras = [], onSelect, onRefreshCamera }) => {
+export const IncidentMap: React.FC<IncidentMapProps> = ({ incidents, trafficData = [], cameras = [], cctvCameras = [], activeFeedIds, onSelect, onRefreshCamera }) => {
     const mapContainer = useRef<HTMLDivElement>(null);
     const map = useRef<any>(null);
     const markers = useRef<any[]>([]);
@@ -95,6 +96,8 @@ export const IncidentMap: React.FC<IncidentMapProps> = ({ incidents, trafficData
     const popup = useRef<any>(null); // Keep for legacy incidents (though can be refactored too)
     // We need to track popup roots to unmount them cleanly
     const popupRoots = useRef<Map<any, any>>(new Map());
+    // Fit bounds only when feed selection changes, not on every polling update
+    const pendingFitBounds = useRef(true);
 
     const [mapError, setMapError] = useState(false);
     const [isMapLoaded, setIsMapLoaded] = useState(false);
@@ -256,19 +259,24 @@ export const IncidentMap: React.FC<IncidentMapProps> = ({ incidents, trafficData
         }
     }, [trafficData, isMapLoaded, mapError]);
 
+    // When feed selection changes, schedule a bounds fit for the next incident update
+    const activeFeedIdsKey = useMemo(() => (activeFeedIds ?? []).slice().sort().join(','), [activeFeedIds]);
+    useEffect(() => {
+        pendingFitBounds.current = true;
+    }, [activeFeedIdsKey]);
+
     // Update markers when incidents change
     useEffect(() => {
         if (!map.current || mapError) return;
 
-        // Clear existing markers and unmount roots
+        // Clear existing markers; defer unmount to avoid React's sync-unmount-during-render warning
         markers.current.forEach(marker => marker.remove());
-        markerRoots.current.forEach(root => {
-            try {
-                root.unmount();
-            } catch (e) {
-                console.warn('Failed to unmount marker root:', e);
-            }
-        });
+        const rootsToUnmount = markerRoots.current.slice();
+        setTimeout(() => {
+            rootsToUnmount.forEach(root => {
+                try { root.unmount(); } catch (e) { /* already unmounted */ }
+            });
+        }, 0);
         markers.current = [];
         markerRoots.current = [];
 
@@ -318,13 +326,14 @@ export const IncidentMap: React.FC<IncidentMapProps> = ({ incidents, trafficData
             bounds.extend([incident.location.x, incident.location.y]);
         });
 
-        // Fit map to bounds if we have incidents
-        if (incidents.length > 0) {
+        // Fit map to bounds only when feeds change (not on every polling refresh)
+        if (incidents.length > 0 && pendingFitBounds.current) {
             try {
                 map.current.fitBounds(bounds, {
                     padding: 50,
                     maxZoom: 15
                 });
+                pendingFitBounds.current = false;
             } catch (e) {
                 console.warn("Could not fit bounds", e);
             }
