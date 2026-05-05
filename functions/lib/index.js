@@ -1,22 +1,22 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function (o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
     if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
+        desc = { enumerable: true, get: function () { return m[k]; } };
     }
     Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
+}) : (function (o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
 }));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function (o, v) {
     Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
+}) : function (o, v) {
     o["default"] = v;
 });
 var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
+    var ownKeys = function (o) {
         ownKeys = Object.getOwnPropertyNames || function (o) {
             var ar = [];
             for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
@@ -62,8 +62,8 @@ const FEED_SOURCES = [
     { id: 'NSC-N111', name: 'NSC-N111', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/6df32654-29e2-41d6-9df2-f287efc799bd?format=1' },
     { id: 'NSC-N112', name: 'NSC-N112', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/ac49baf5-cbe1-44ea-8ee3-7c9bdbd82ff0?format=1' },
     { id: 'NSC-N115', name: 'NSC-N115', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/cb390849-f2ef-459f-b136-c28cd473bc24?format=1' },
-    { id: 'N113', name: 'N113', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/a2141ab7-ad83-4456-a614-54c572a780d4?format=1' },
-    { id: 'N105', name: 'N105', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/e0c6ef0a-aae0-4e8f-986b-65fb02a5e5a9?format=1' },
+    { id: 'NSC-N113', name: 'NSC-N113', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/a2141ab7-ad83-4456-a614-54c572a780d4?format=1' },
+    { id: 'NSC-Smart VMS', name: 'NSC-Smart VMS', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/e0c6ef0a-aae0-4e8f-986b-65fb02a5e5a9?format=1' },
     { id: 'NSC-N105', name: 'NSC-N105', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/ee935c52-98cd-4aa0-bac4-6f918a60b948?format=1' },
     { id: 'feed-0d9de297', name: 'Feed 0d9de297', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/0d9de297-44e8-4c4b-97bb-9d35115dc45b?format=1' },
     { id: 'feed-27b495d6', name: 'Feed 27b495d6', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/27b495d6-e791-477c-8ca6-f5c07e69d245?format=1' },
@@ -81,9 +81,9 @@ const FEED_ID_TO_SLUG = {
     'NSC-N111': 'nsc_n111',
     'NSC-N112': 'nsc_n112',
     'NSC-N115': 'nsc_n115',
-    'N113': 'n113',
-    'N105': 'n105',
+    'NSC-N113': 'nsc_n113',
     'NSC-N105': 'nsc_n105',
+    'NSC-Smart VMS': 'nsc_smart_vms',
     'LTA_Traffic': 'lta_traffic',
     'feed-0d9de297': 'feed_0d9de297',
     'feed-27b495d6': 'feed_27b495d6',
@@ -317,57 +317,57 @@ exports.monitor = functions
     .runWith({ secrets: ["INFISICAL"] })
     .pubsub.schedule('every 5 minutes')
     .onRun(async (context) => {
-    await loadSecrets();
-    console.log("Running scheduled monitor...");
-    // Define "New" as published in the last 5.5 minutes
-    // This covers the schedule interval + 30s buffer
-    const TIME_WINDOW = 5.5 * 60 * 1000;
-    const now = Date.now();
-    // 1. Check Waze Feeds
-    for (const source of FEED_SOURCES) {
-        const alerts = await fetchWazeFeed(source.url);
-        const newAlerts = alerts.filter(a => (now - a.pubMillis) < TIME_WINDOW);
-        console.log(`[${source.name}] Found ${alerts.length} total, ${newAlerts.length} new.`);
-        for (const alert of newAlerts) {
-            // Ignore JAM type notifications
-            if (alert.type === 'JAM') {
-                console.log(`[${source.name}] Skipping JAM notification for ${alert.uuid}`);
-                continue;
+        await loadSecrets();
+        console.log("Running scheduled monitor...");
+        // Define "New" as published in the last 5.5 minutes
+        // This covers the schedule interval + 30s buffer
+        const TIME_WINDOW = 5.5 * 60 * 1000;
+        const now = Date.now();
+        // 1. Check Waze Feeds
+        for (const source of FEED_SOURCES) {
+            const alerts = await fetchWazeFeed(source.url);
+            const newAlerts = alerts.filter(a => (now - a.pubMillis) < TIME_WINDOW);
+            console.log(`[${source.name}] Found ${alerts.length} total, ${newAlerts.length} new.`);
+            for (const alert of newAlerts) {
+                // Ignore JAM type notifications
+                if (alert.type === 'JAM') {
+                    console.log(`[${source.name}] Skipping JAM notification for ${alert.uuid}`);
+                    continue;
+                }
+                await sendNotification(alert, source.name, source.id);
             }
-            await sendNotification(alert, source.name, source.id);
         }
-    }
-    // 2. Check LTA
-    // 2. Check LTA
-    const ltaAlerts = await fetchLtaData();
-    // Deduplication: Use Firestore to track sent UUIDs
-    const db = admin.firestore();
-    const sentRef = db.collection('sent_lta_notifications');
-    let sentCount = 0;
-    for (const alert of ltaAlerts) {
-        const docRef = sentRef.doc(alert.uuid);
-        try {
-            const doc = await docRef.get();
-            if (doc.exists) {
-                // Already sent
-                continue;
+        // 2. Check LTA
+        // 2. Check LTA
+        const ltaAlerts = await fetchLtaData();
+        // Deduplication: Use Firestore to track sent UUIDs
+        const db = admin.firestore();
+        const sentRef = db.collection('sent_lta_notifications');
+        let sentCount = 0;
+        for (const alert of ltaAlerts) {
+            const docRef = sentRef.doc(alert.uuid);
+            try {
+                const doc = await docRef.get();
+                if (doc.exists) {
+                    // Already sent
+                    continue;
+                }
+                // If not sent, send it now
+                await sendNotification(alert, "Singapore LTA", "LTA_Traffic");
+                // Mark as sent in Firestore with a timestamp
+                await docRef.set({
+                    sentAt: admin.firestore.FieldValue.serverTimestamp(),
+                    message: alert.reportDescription || ""
+                });
+                sentCount++;
             }
-            // If not sent, send it now
-            await sendNotification(alert, "Singapore LTA", "LTA_Traffic");
-            // Mark as sent in Firestore with a timestamp
-            await docRef.set({
-                sentAt: admin.firestore.FieldValue.serverTimestamp(),
-                message: alert.reportDescription || ""
-            });
-            sentCount++;
+            catch (e) {
+                console.error(`Firestore Check Error for ${alert.uuid}:`, e.message);
+            }
         }
-        catch (e) {
-            console.error(`Firestore Check Error for ${alert.uuid}:`, e.message);
-        }
-    }
-    console.log(`[LTA] Processed ${ltaAlerts.length} alerts. Sent ${sentCount} new notifications.`);
-    return null;
-});
+        console.log(`[LTA] Processed ${ltaAlerts.length} alerts. Sent ${sentCount} new notifications.`);
+        return null;
+    });
 // --- AI Summary ---
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 let GEMINI_API_KEY = "";

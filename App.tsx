@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { AlertTriangle, RefreshCw, Search, ListFilter, LayoutDashboard, Map as MapIcon } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Search, ListFilter, LayoutDashboard, Map as MapIcon, Layers, Camera } from 'lucide-react';
 import { fetchWazeIncidents, fetchTrafficView, fetchTrafficCameras } from './services/wazeService';
 import { ManagedIncident, IncidentStatus, FilterCategory, WazeTrafficJam } from './types';
 import { FeedSelector } from './components/FeedSelector';
-import { CATEGORY_CONFIG, SUBTYPE_MAPPING, DEMO_ALERTS, FEED_SOURCES, FEED_POLL_INTERVAL_MS, N105_CCTV_CAMERAS } from './constants';
+import { CATEGORY_CONFIG, SUBTYPE_MAPPING, DEMO_ALERTS, FEED_SOURCES, FEED_POLL_INTERVAL_MS, NSC_SMART_VMS_CCTV_CAMERAS } from './constants';
 import { IncidentModal } from './components/IncidentModal';
 import { IncidentFilter } from './components/IncidentFilter';
 import { IncidentStats } from './components/IncidentStats';
@@ -22,6 +22,8 @@ function App() {
   const activeFeedIdsRef = useRef<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingTraffic, setLoadingTraffic] = useState(false);
+  const [showTraffic, setShowTraffic] = useState(true);
+  const [showCameras, setShowCameras] = useState(false);
 
   const [selectedIncident, setSelectedIncident] = useState<ManagedIncident | null>(null);
   const [filter, setFilter] = useState<FilterCategory>('ALL');
@@ -176,6 +178,10 @@ function App() {
     }
   };
 
+  const toggleTrafficView = () => {
+    setShowTraffic(prev => !prev);
+  };
+
   // Re-fetch traffic whenever selected feeds change; clear when no feeds selected
   useEffect(() => {
     if (activeFeedIds.length === 0) {
@@ -201,6 +207,16 @@ function App() {
       addToast("Failed to load traffic cameras", 'error');
     } finally {
       setLoadingCameras(false);
+    }
+  };
+
+  const toggleCameras = () => {
+    const newState = !showCameras;
+    setShowCameras(newState);
+    if (newState) {
+      loadCameras();
+    } else {
+      setCameras([]);
     }
   };
 
@@ -233,9 +249,11 @@ function App() {
     const hasNonCustom = activeFeedIds.some(id => id !== 'custom');
     if (hasNonCustom) {
       loadData(false);
-      loadCameras();
+      if (showCameras) {
+        loadCameras();
+      }
     }
-  }, [activeFeedIds]);
+  }, [activeFeedIds, showCameras]);
 
   // Polling every 5 minutes
   useEffect(() => {
@@ -408,6 +426,35 @@ function App() {
               </span>
 
               <div className="flex items-center gap-4 self-end sm:self-center">
+                {viewMode === 'MAP' && (
+                  <>
+                    <button
+                      onClick={toggleTrafficView}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-sm font-medium
+                            ${showTraffic
+                          ? 'bg-orange-50 border-orange-200 text-orange-700'
+                          : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}
+                        `}
+                    >
+                      <Layers size={16} className={loadingTraffic ? 'animate-spin' : ''} />
+                      Traffic View {showTraffic ? 'On' : 'Off'}
+                    </button>
+
+                    <button
+                      onClick={toggleCameras}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-sm font-medium
+                            ${showCameras
+                          ? 'bg-blue-50 border-blue-200 text-blue-700'
+                          : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}
+                        `}
+                    >
+                      <div className={`transition-transform ${loadingCameras ? 'animate-pulse' : ''}`}>
+                        <Camera size={16} />
+                      </div>
+                      Traffic Camera {showCameras ? 'On' : 'Off'}
+                    </button>
+                  </>
+                )}
 
                 {/* View Switcher */}
                 <div className="flex bg-gray-100 p-1 rounded-lg">
@@ -441,9 +488,9 @@ function App() {
               <IncidentMap
                 incidents={filteredIncidents}
                 onSelect={setSelectedIncident}
-                trafficData={trafficData}
-                cameras={cameras}
-                cctvCameras={activeFeedIds.includes('NSC-N105') ? N105_CCTV_CAMERAS : []}
+                trafficData={showTraffic ? trafficData : []}
+                cameras={showCameras ? cameras : []}
+                cctvCameras={showCameras && activeFeedIds.includes('NSC-Smart-VMS') ? NSC_SMART_VMS_CCTV_CAMERAS : []}
                 activeFeedIds={activeFeedIds}
                 onRefreshCamera={refreshCamera}
               />
