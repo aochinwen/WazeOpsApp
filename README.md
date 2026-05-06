@@ -93,3 +93,30 @@ The frontend is hosted on GitHub Pages and connects to the Firebase backend.
 
 2.  **Access**: Visit `https://aochinwen.github.io/WazeOpsApp/`.
 
+### CCTV Proxy (Cloud Run) Maintenance
+
+If CCTV streams fail to load or return 0 bytes, the `go2rtc` process inside the Cloud Run container may need a restart. Since Cloud Run is serverless, you "restart" by forcing a new revision.
+
+#### Option 1: Restart via CLI (Recommended)
+Run the following command from the `server/` directory:
+```bash
+gcloud run deploy cctv-snapshot \
+  --image gcr.io/wazeops/cctv-snapshot:latest \
+  --region us-central1 \
+  --allow-unauthenticated
+```
+
+#### Option 2: Restart via Google Cloud Console
+1.  Navigate to **Cloud Run** in the [Google Cloud Console](https://console.cloud.google.com).
+2.  Select the `cctv-snapshot` service.
+3.  Click **Edit & Deploy New Revision**.
+4.  Scroll to the bottom and click **Deploy** (no changes needed).
+
+#### Deployment of Worker Changes
+To build and deploy code changes to the worker:
+```bash
+# Inside the server/ directory
+gcloud builds submit . --tag gcr.io/$(gcloud config get-value project)/cctv-snapshot:latest
+# Then run the deploy command from Option 1
+```
+

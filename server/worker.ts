@@ -429,18 +429,44 @@ app.get('/snapshot', async (req, res) => {
   const src = req.query.src as string;
   if (!src) return res.status(400).json({ error: 'Missing src parameter' });
 
+  // Create an abort controller to cancel the upstream request if the client disconnects
+  const controller = new AbortController();
+  req.on('close', () => {
+    controller.abort();
+  });
+
   try {
     const response = await axios.get(
       `${GO2RTC_URL}/api/frame.jpeg?src=${encodeURIComponent(src)}`,
-      { responseType: 'arraybuffer', timeout: 25000 }
+      { 
+        responseType: 'arraybuffer', 
+        timeout: 10000, // Reduced timeout to prevent long hangs
+        signal: controller.signal // Link the abort signal
+      }
     );
+
+    const buffer = Buffer.from(response.data);
+    
+    if (buffer.length === 0) {
+      console.error(`[Snapshot] go2rtc returned 0 bytes for ${src}. Stream might be offline or unresponsive.`);
+      if (!res.headersSent) {
+        return res.status(502).json({ error: "Empty snapshot from go2rtc stream" });
+      }
+      return;
+    }
 
     res.set('Content-Type', 'image/jpeg');
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.send(Buffer.from(response.data));
+    res.send(buffer);
   } catch (error: any) {
+    if (axios.isCancel(error)) {
+      console.log(`[Snapshot] Request cancelled by client for ${src}`);
+      return;
+    }
     console.error("go2rtc snapshot proxy error:", error.message);
-    res.status(502).json({ error: "Failed to capture snapshot from go2rtc" });
+    if (!res.headersSent) {
+      res.status(502).json({ error: "Failed to capture snapshot from go2rtc" });
+    }
   }
 });
 

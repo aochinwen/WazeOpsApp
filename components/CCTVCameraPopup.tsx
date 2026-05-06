@@ -13,14 +13,64 @@ export const CCTVCameraPopup: React.FC<{ camera: CCTVCamera; active?: boolean; o
     const [imgSrc, setImgSrc] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(false);
-    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const errorCountRef = useRef(0);
+    const isActiveRef = useRef(active);
 
     const snapshotUrl = `${CCTV_URL}/snapshot?src=${camera.id}`;
 
+    useEffect(() => {
+        isActiveRef.current = active;
+    }, [active]);
+
     const fetchSnapshot = useCallback(() => {
+        if (!isActiveRef.current) return;
+        
+        // Changing imgSrc aborts the previous browser request
         setImgSrc(`${snapshotUrl}&t=${Date.now()}`);
-    }, [snapshotUrl]);
+        
+        if (timerRef.current) clearTimeout(timerRef.current);
+        
+        // Fallback timeout in case the image hangs forever without firing load/error
+        timerRef.current = setTimeout(() => {
+            if (!isActiveRef.current) return;
+            errorCountRef.current++;
+            if (errorCountRef.current >= 3) {
+                setLoading(false);
+                setError(true);
+                onStreamError?.();
+            } else {
+                fetchSnapshot(); // retry
+            }
+        }, 10000);
+    }, [snapshotUrl, onStreamError]);
+
+    const handleLoad = () => {
+        if (!isActiveRef.current) return;
+        if (timerRef.current) clearTimeout(timerRef.current);
+        
+        setLoading(false);
+        setError(false);
+        errorCountRef.current = 0;
+        
+        // Schedule next poll
+        timerRef.current = setTimeout(fetchSnapshot, SNAPSHOT_INTERVAL_MS);
+    };
+
+    const handleError = () => {
+        if (!isActiveRef.current) return;
+        if (timerRef.current) clearTimeout(timerRef.current);
+        
+        errorCountRef.current++;
+        if (errorCountRef.current >= 3) {
+            setLoading(false);
+            setError(true);
+            onStreamError?.();
+        } else {
+            // Schedule next poll
+            timerRef.current = setTimeout(fetchSnapshot, SNAPSHOT_INTERVAL_MS);
+        }
+    };
 
     useEffect(() => {
         if (active) {
@@ -28,42 +78,20 @@ export const CCTVCameraPopup: React.FC<{ camera: CCTVCamera; active?: boolean; o
             setError(false);
             errorCountRef.current = 0;
             fetchSnapshot();
-            intervalRef.current = setInterval(fetchSnapshot, SNAPSHOT_INTERVAL_MS);
         } else {
+            // Cleanup on deactivate
+            if (timerRef.current) {
+                clearTimeout(timerRef.current);
+                timerRef.current = null;
+            }
             setImgSrc(null);
             setLoading(false);
-            if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-                intervalRef.current = null;
-            }
         }
+        
         return () => {
-            if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-                intervalRef.current = null;
-            }
+            if (timerRef.current) clearTimeout(timerRef.current);
         };
     }, [active, fetchSnapshot]);
-
-    const handleLoad = () => {
-        setLoading(false);
-        setError(false);
-        errorCountRef.current = 0;
-    };
-
-    const handleError = () => {
-        errorCountRef.current++;
-        // After 3 consecutive failures, mark as unavailable
-        if (errorCountRef.current >= 3) {
-            setLoading(false);
-            setError(true);
-            onStreamError?.();
-            if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-                intervalRef.current = null;
-            }
-        }
-    };
 
     return (
         <div className="p-2 min-w-[280px]">
