@@ -531,7 +531,7 @@ exports.cctvHealthCheck = functions
             let status = 'offline';
             let responseTimeMs = null;
             let errorMessage = null;
-            const RETRY_DELAY_MS = 3000;
+            const RETRY_DELAY_MS = 10000;
             // go2rtc lazily connects to RTSP — the first request may return 0 bytes
             // while it establishes the stream. We retry once after a short delay.
             const trySnapshot = async () => {
