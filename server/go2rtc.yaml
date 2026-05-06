@@ -39,6 +39,408 @@ streams:
     - "rtsp://LTA%20operator:LTAN105%2A@128.106.192.66:554/streaming/channels/1901"
   NSC_SMART_VMS_20:
     - "rtsp://LTA%20operator:LTAN105%2A@128.106.192.66:554/streaming/channels/2001"
+  N101_01:
+    - "rtsp://admin:rest%5E1ct@119.73.153.38:554/streaming/channels/101"
+  N101_02:
+    - "rtsp://admin:rest%5E1ct@119.73.153.38:554/streaming/channels/201"
+  N101_03:
+    - "rtsp://admin:rest%5E1ct@119.73.153.38:554/streaming/channels/301"
+  N101_06:
+    - "rtsp://admin:rest%5E1ct@119.73.153.38:554/streaming/channels/601"
+  N101_07:
+    - "rtsp://admin:rest%5E1ct@119.73.153.38:554/streaming/channels/701"
+  N101_08:
+    - "rtsp://admin:rest%5E1ct@119.73.153.38:554/streaming/channels/801"
+  N101_09:
+    - "rtsp://admin:rest%5E1ct@119.73.153.38:554/streaming/channels/901"
+  N101_10:
+    - "rtsp://admin:rest%5E1ct@119.73.153.38:554/streaming/channels/1001"
+  N101_11:
+    - "rtsp://admin:rest%5E1ct@119.73.153.38:554/streaming/channels/1101"
+  N101_12:
+    - "rtsp://admin:rest%5E1ct@119.73.153.38:554/streaming/channels/1201"
+  N101_13:
+    - "rtsp://admin:rest%5E1ct@119.73.153.38:554/streaming/channels/1301"
+  N101_14:
+    - "rtsp://admin:rest%5E1ct@119.73.153.38:554/streaming/channels/1401"
+  N101_16:
+    - "rtsp://admin:rest%5E1ct@119.73.153.38:554/streaming/channels/1601"
+  N101_18:
+    - "rtsp://admin:rest%5E1ct@119.73.153.38:554/streaming/channels/1801"
+  N101_19:
+    - "rtsp://admin:rest%5E1ct@119.73.153.38:554/streaming/channels/1901"
+  N102_02:
+    - "rtsp://admin:%24ecret123@203.126.119.211:554/Streaming/Channels/201"
+  N102_03:
+    - "rtsp://admin:%24ecret123@203.126.119.211:554/Streaming/Channels/301"
+  N102_06:
+    - "rtsp://admin:%24ecret123@203.126.119.211:554/Streaming/Channels/601"
+  N102_08:
+    - "rtsp://admin:%24ecret123@203.126.119.211:554/Streaming/Channels/801"
+  N102_09:
+    - "rtsp://admin:%24ecret123@203.126.119.211:554/Streaming/Channels/901"
+  N102_10:
+    - "rtsp://admin:%24ecret123@203.126.119.211:554/Streaming/Channels/1001"
+  N102_12:
+    - "rtsp://admin:%24ecret123@203.126.119.211:554/Streaming/Channels/1201"
+  N102_13:
+    - "rtsp://admin:%24ecret123@203.126.119.211:554/Streaming/Channels/1301"
+  N102_15:
+    - "rtsp://admin:%24ecret123@203.126.119.211:554/Streaming/Channels/1501"
+  N102_16:
+    - "rtsp://admin:%24ecret123@203.126.119.211:554/Streaming/Channels/1601"
+  N103_01:
+    - "rtsp://admin:NSC103%40lta@203.127.62.122:554/Streaming/Channels/101"
+  N103_06:
+    - "rtsp://admin:NSC103%40lta@203.127.62.122:554/streaming/channels/602"
+  N103_07:
+    - "rtsp://admin:NSC103%40lta@203.127.62.122:554/streaming/channels/702"
+  N103_08:
+    - "rtsp://admin:NSC103%40lta@203.127.62.122:554/streaming/channels/802"
+  N103_09:
+    - "rtsp://admin:NSC103%40lta@203.127.62.122:554/streaming/channels/902"
+  N103_11:
+    - "rtsp://admin:NSC103%40lta@203.127.62.122:554/streaming/channels/1102"
+  N103_12:
+    - "rtsp://admin:NSC103%40lta@203.127.62.122:554/streaming/channels/1202"
+  N103_13:
+    - "rtsp://admin:NSC103%40lta@203.127.62.122:554/streaming/channels/1301"
+  N103_16:
+    - "rtsp://admin:NSC103%40lta@203.127.62.122:554/streaming/channels/1602"
+  N103_17:
+    - "rtsp://admin:NSC103%40lta@203.127.62.122:554/streaming/channels/1702"
+  N105_01:
+    - "rtsp://LTA%20operator:LTAN105*@128.106.192.66:554/streaming/channels/101"
+  N105_02:
+    - "rtsp://LTA%20operator:LTAN105*5@128.106.192.66:554/streaming/channels/201"
+  N105_04:
+    - "rtsp://LTA%20operator:LTAN105*@128.106.192.66:554/streaming/channels/401"
+  N105_06:
+    - "rtsp://LTA%20operator:LTAN105*@128.106.192.66:554/streaming/channels/601"
+  N105_07:
+    - "rtsp://LTA%20operator:LTAN105*@128.106.192.66:554/streaming/channels/701"
+  N105_08:
+    - "rtsp://LTA%20operator:LTAN105*@128.106.192.66:554/streaming/channels/801"
+  N105_09:
+    - "rtsp://LTA%20operator:LTAN105*@128.106.192.66:554/streaming/channels/901"
+  N105_10:
+    - "rtsp://LTA%20operator:LTAN105*@128.106.192.66:554/streaming/channels/1001"
+  N105_11:
+    - "rtsp://LTA%20operator:LTAN105*@128.106.192.66:554/streaming/channels/1101"
+  N105_12:
+    - "rtsp://LTA%20operator:LTAN105*@128.106.192.66:554/streaming/channels/1201"
+  N105_13:
+    - "rtsp://LTA%20operator:LTAN105*@128.106.192.66:554/streaming/channels/1301"
+  N105_14:
+    - "rtsp://LTA%20operator:LTAN105*@128.106.192.66:554/streaming/channels/1401"
+  N105_15:
+    - "rtsp://LTA%20operator:LTAN105*@128.106.192.66:554/streaming/channels/1501"
+  N105_16:
+    - "rtsp://LTA%20operator:LTAN105*@128.106.192.66:554/streaming/channels/1601"
+  N105_17:
+    - "rtsp://LTA%20operator:LTAN105*@128.106.192.66:554/streaming/channels/1701"
+  N105_18:
+    - "rtsp://LTA%20operator:LTAN105*@128.106.192.66:554/streaming/channels/1801"
+  N105_19:
+    - "rtsp://LTA%20operator:LTAN105*@128.106.192.66:554/streaming/channels/1901"
+  N105_20:
+    - "rtsp://LTA%20operator:LTAN105*@128.106.192.66:554/streaming/channels/2001"
+  N106_01:
+    - "rtsp://admin:echol123%40@203.126.235.202:554/streaming/channels/101"
+  N106_02:
+    - "rtsp://admin:echol123%40@203.126.235.202:554/streaming/channels/201"
+  N106_03:
+    - "rtsp://admin:echol123%40@203.126.235.202:554/streaming/channels/301"
+  N106_05:
+    - "rtsp://admin:echol123%40@203.126.235.202:554/streaming/channels/501"
+  N106_07:
+    - "rtsp://admin:echol123%40@203.126.235.202:554/streaming/channels/701"
+  N106_08:
+    - "rtsp://admin:echol123%40@203.126.235.202:554/streaming/channels/801"
+  N106_09:
+    - "rtsp://admin:echol123%40@203.126.235.202:554/streaming/channels/901"
+  N106_10:
+    - "rtsp://admin:echol123%40@203.126.235.202:554/streaming/channels/1001"
+  N106_11:
+    - "rtsp://admin:echol123%40@203.126.235.202:554/streaming/channels/1101"
+  N106_12:
+    - "rtsp://admin:echol123%40@203.126.235.202:554/streaming/channels/1201"
+  N106_13:
+    - "rtsp://admin:echol123%40@203.126.235.202:554/streaming/channels/1301"
+  N106_14:
+    - "rtsp://admin:echol123%40@203.126.235.202:554/streaming/channels/1401"
+  N106_15:
+    - "rtsp://admin:echol123%40@203.126.235.202:554/streaming/channels/1501"
+  N106_16:
+    - "rtsp://admin:echol123%40@203.126.235.202:554/streaming/channels/1601"
+  N106_17:
+    - "rtsp://admin:echol123%40@203.126.235.202:554/streaming/channels/1701"
+  N106_18:
+    - "rtsp://admin:echol123%40@203.126.235.202:554/streaming/channels/1801"
+  N106_19:
+    - "rtsp://admin:echol123%40@203.126.235.202:554/streaming/channels/1901"
+  N106_20:
+    - "rtsp://admin:echol123%40@203.126.235.202:554/streaming/channels/2001"
+  N107_01:
+    - "rtsp://admin:echol123%40@115.42.205.14:554/streaming/channels/101"
+  N107_02:
+    - "rtsp://admin:echol123%40@115.42.205.14:554/streaming/channels/201"
+  N107_03:
+    - "rtsp://admin:echol123%40@115.42.205.14:554/streaming/channels/1801"
+  N107_04:
+    - "rtsp://admin:echol123%40@115.42.205.14:554/streaming/channels/701"
+  N107_07:
+    - "rtsp://admin:echol123%40@115.42.205.14:554/streaming/channels/301"
+  N107_12:
+    - "rtsp://admin:echol123%40@115.42.205.14:554/streaming/channels/1201"
+  N107_14:
+    - "rtsp://admin:echol123%40@115.42.205.14:554/streaming/channels/1401"
+  N107_15:
+    - "rtsp://admin:echol123%40@115.42.205.14:554/streaming/channels/1501"
+  N107_16:
+    - "rtsp://admin:echol123%40@115.42.205.14:554/streaming/channels/1601"
+  N107_17:
+    - "rtsp://admin:echol123%40@115.42.205.14:554/streaming/channels/1701"
+  N108_03:
+    - "rtsp://echol:N1082005@crfgn108.dyndns.org:554/streaming/channels/301"
+  N108_06:
+    - "rtsp://echol:N1082005@crfgn108.dyndns.org:554/streaming/channels/601"
+  N108_08:
+    - "rtsp://echol:N1082005@crfgn108.dyndns.org:554/streaming/channels/801"
+  N108_09:
+    - "rtsp://echol:N1082005@crfgn108.dyndns.org:554/streaming/channels/901"
+  N108_11:
+    - "rtsp://echol:N1082005@crfgn108.dyndns.org:554/streaming/channels/1101"
+  N108_12:
+    - "rtsp://echol:N1082005@crfgn108.dyndns.org:554/streaming/channels/1201"
+  N108_13:
+    - "rtsp://echol:N1082005@crfgn108.dyndns.org:554/streaming/channels/1301"
+  N108_15:
+    - "rtsp://echol:N1082005@crfgn108.dyndns.org:554/streaming/channels/1501"
+  N108_17:
+    - "rtsp://echol:N1082005@crfgn108.dyndns.org:554/streaming/channels/1701"
+  N108_20:
+    - "rtsp://echol:N1082005@crfgn108.dyndns.org:554/streaming/channels/2001"
+  N109_02:
+    - "rtsp://QPS:Qps%401234@165.21.73.228:554/streaming/channels/201"
+  N109_03:
+    - "rtsp://LTA2:Ltan109%401@165.21.73.228:554/streaming/channels/301"
+  N109_10:
+    - "rtsp://QPS:Qps%401234@165.21.73.228:554/streaming/channels/1001"
+  N109_11:
+    - "rtsp://QPS:Qps%401234@165.21.73.228:554/streaming/channels/1101"
+  N109_12:
+    - "rtsp://QPS:Qps%401234@165.21.73.228:554/streaming/channels/1201"
+  N109_13:
+    - "rtsp://QPS:Qps%401234@165.21.73.228:554/streaming/channels/1301"
+  N109_14:
+    - "rtsp://QPS:Qps%401234@165.21.73.228:554/streaming/channels/1401"
+  N109_15:
+    - "rtsp://QPS:Qps%401234@165.21.73.228:554/streaming/channels/1501"
+  N110_01:
+    - "rtsp://N110_user:Secure888@118.201.249.158:554/streaming/channels/101"
+  N110_02:
+    - "rtsp://N110_user:Secure888@118.201.249.158:554/streaming/channels/201"
+  N110_04:
+    - "rtsp://N110_user:Secure888@118.201.249.158:554/streaming/channels/401"
+  N110_05:
+    - "rtsp://N110_user:Secure888@118.201.249.158:554/streaming/channels/501"
+  N110_06:
+    - "rtsp://N110_user:Secure888@118.201.249.158:554/streaming/channels/601"
+  N110_07:
+    - "rtsp://N110_user:Secure888@118.201.249.158:554/streaming/channels/701"
+  N110_08:
+    - "rtsp://N110_user:Secure888@118.201.249.158:554/streaming/channels/801"
+  N110_09:
+    - "rtsp://N110_user:Secure888@118.201.249.158:554/streaming/channels/901"
+  N110_10:
+    - "rtsp://N110_user:Secure888@118.201.249.158:554/streaming/channels/1001"
+  N110_11:
+    - "rtsp://N110_user:Secure888@118.201.249.158:554/streaming/channels/1101"
+  N110_12:
+    - "rtsp://N110_user:Secure888@118.201.249.158:554/streaming/channels/1201"
+  N110_13:
+    - "rtsp://N110_user:Secure888@118.201.249.158:554/streaming/channels/1301"
+  N110_14:
+    - "rtsp://N110_user:Secure888@118.201.249.158:554/streaming/channels/1401"
+  N110_15:
+    - "rtsp://N110_user:Secure888@118.201.249.158:554/streaming/channels/1501"
+  N110_16:
+    - "rtsp://N110_user:Secure888@118.201.249.158:554/streaming/channels/1601"
+  N110_17:
+    - "rtsp://N110_user:Secure888@118.201.249.158:554/streaming/channels/1701"
+  N110_18:
+    - "rtsp://N110_user:Secure888@118.201.249.158:554/streaming/channels/1801"
+  N110_19:
+    - "rtsp://N110_user:Secure888@118.201.249.158:554/streaming/channels/1901"
+  N110_20:
+    - "rtsp://N110_user:Secure888@118.201.249.158:554/streaming/channels/2001"
+  N111_01:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/101"
+  N111_02:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/201"
+  N111_03:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/301"
+  N111_04:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/401"
+  N111_05:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/501"
+  N111_06:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/601"
+  N111_07:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/701"
+  N111_08:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/801"
+  N111_09:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/901"
+  N111_10:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/1001"
+  N111_11:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/1101"
+  N111_12:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/1201"
+  N111_13:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/1301"
+  N111_14:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/1401"
+  N111_15:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/1501"
+  N111_16:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/1601"
+  N111_17:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/1701"
+  N111_18:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/1801"
+  N111_19:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/1901"
+  N111_20:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/2001"
+  N111_21:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/2101"
+  N111_22:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/2201"
+  N111_23:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/2301"
+  N111_24:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/2301"
+  N111_25:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/2501"
+  N111_26:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/2601"
+  N111_27:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/2701"
+  N111_28:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/2801"
+  N111_30:
+    - "rtsp://admin:Secure369@165.21.14.98:554/Streaming/Channels/3001"
+  N112_04:
+    - "rtsp://admin:Echol123@124.66.155.50:555/streaming/channels/901"
+  N112_05:
+    - "rtsp://admin:Echol123@124.66.155.50:555/streaming/channels/1501"
+  N112_06:
+    - "rtsp://admin:Echol123@124.66.155.50:555/streaming/channels/401"
+  N112_07:
+    - "rtsp://admin:Echol123@124.66.155.50:555/streaming/channels/501"
+  N112_08:
+    - "rtsp://admin:Echol123@124.66.155.50:555/streaming/channels/801"
+  N112_09:
+    - "rtsp://admin:Echol123@124.66.155.50:555/streaming/channels/1601"
+  N112_10:
+    - "rtsp://admin:Echol123@124.66.155.50:555/streaming/channels/1101"
+  N112_11:
+    - "rtsp://admin:Echol123@124.66.155.50:555/streaming/channels/1701"
+  N112_12:
+    - "rtsp://admin:Echol123@124.66.155.50:555/streaming/channels/1401"
+  N112_13:
+    - "rtsp://admin:Echol123@124.66.155.50:555/streaming/channels/2001"
+  N112_14:
+    - "rtsp://admin:Echol123@124.66.155.50:555/streaming/channels/601"
+  N112_15:
+    - "rtsp://admin:Echol123@124.66.155.50:555/streaming/channels/1001"
+  N112_16:
+    - "rtsp://admin:Echol123@124.66.155.50:555/streaming/channels/1801"
+  N112_17:
+    - "rtsp://admin:Echol123@124.66.155.50:555/streaming/channels/701"
+  N112_18:
+    - "rtsp://admin:Echol123@124.66.155.50:555/streaming/channels/1301"
+  N112_19:
+    - "rtsp://admin:Echol123@124.66.155.50:555/streaming/channels/1201"
+  N112_20:
+    - "rtsp://admin:Echol123@124.66.155.50:555/streaming/channels/1901"
+  N113_01:
+    - "rtsp://admin:echol123@tomatosg.com:65111/streaming/channels/101"
+  N113_02:
+    - "rtsp://admin:echol123@tomatosg.com:65111/streaming/channels/201"
+  N113_03:
+    - "rtsp://admin:echol123@tomatosg.com:65111/streaming/channels/301"
+  N113_04:
+    - "rtsp://admin:echol123@tomatosg.com:65111/streaming/channels/401"
+  N113_05:
+    - "rtsp://admin:echol123@tomatosg.com:65111/streaming/channels/501"
+  N113_06:
+    - "rtsp://admin:echol123@tomatosg.com:65111/streaming/channels/601"
+  N113_07:
+    - "rtsp://admin:echol123@tomatosg.com:65111/streaming/channels/701"
+  N113_08:
+    - "rtsp://admin:echol123@tomatosg.com:65111/streaming/channels/801"
+  N113_09:
+    - "rtsp://admin:echol123@tomatosg.com:65111/streaming/channels/901"
+  N113_11:
+    - "rtsp://admin:echol123@tomatosg.com:65111/streaming/channels/1101"
+  N113_12:
+    - "rtsp://admin:echol123@tomatosg.com:65111/streaming/channels/1201"
+  N113_13:
+    - "rtsp://admin:echol123@tomatosg.com:65111/streaming/channels/1301"
+  N113_14:
+    - "rtsp://admin:echol123@tomatosg.com:65111/streaming/channels/1401"
+  N113_15:
+    - "rtsp://admin:echol123@tomatosg.com:65111/streaming/channels/1501"
+  N113_16:
+    - "rtsp://admin:echol123@tomatosg.com:65111/streaming/channels/1601"
+  N113_17:
+    - "rtsp://admin:echol123@tomatosg.com:65111/streaming/channels/1701"
+  N113_18:
+    - "rtsp://admin:echol123@tomatosg.com:65111/streaming/channels/1801"
+  N113_19:
+    - "rtsp://admin:echol123@tomatosg.com:65111/streaming/channels/1901"
+  N113_20:
+    - "rtsp://admin:echol123@tomatosg.com:65111/streaming/channels/2001"
+  N115_03:
+    - "rtsp://admin:echol123@51.79.165.171:7027/streaming/channels/301"
+  N115_04:
+    - "rtsp://admin:echol123@51.79.165.171:7027/streaming/channels/401"
+  N115_05:
+    - "rtsp://admin:echol123@51.79.165.171:7027/streaming/channels/501"
+  N115_06:
+    - "rtsp://admin:echol123@51.79.165.171:7027/streaming/channels/601"
+  N115_07:
+    - "rtsp://admin:echol123@51.79.165.171:7027/streaming/channels/701"
+  N115_08:
+    - "rtsp://admin:echol123@51.79.165.171:7027/streaming/channels/801"
+  N115_09:
+    - "rtsp://admin:echol123@51.79.165.171:7027/streaming/channels/901"
+  N115_10:
+    - "rtsp://admin:echol123@51.79.165.171:7027/streaming/channels/1001"
+  N115_11:
+    - "rtsp://admin:echol123@51.79.165.171:7027/streaming/channels/1101"
+  N115_12:
+    - "rtsp://admin:echol123@51.79.165.171:7027/streaming/channels/1201"
+  N115_13:
+    - "rtsp://admin:echol123@51.79.165.171:7027/streaming/channels/1301"
+  N115_14:
+    - "rtsp://admin:echol123@51.79.165.171:7027/streaming/channels/1401"
+  N115_15:
+    - "rtsp://admin:echol123@51.79.165.171:7027/streaming/channels/1501"
+  N115_16:
+    - "rtsp://admin:echol123@51.79.165.171:7027/streaming/channels/1601"
+  N115_17:
+    - "rtsp://admin:echol123@51.79.165.171:7027/streaming/channels/1701"
+  N115_18:
+    - "rtsp://admin:echol123@51.79.165.171:7027/streaming/channels/1801"
+  N115_19:
+    - "rtsp://admin:echol123@51.79.165.171:7027/streaming/channels/1901"
+  N115_20:
+    - "rtsp://admin:echol123@51.79.165.171:7027/streaming/channels/2001"
 
 api:
   listen: ":1984"

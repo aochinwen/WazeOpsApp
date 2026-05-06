@@ -26,3 +26,5 @@ dist-ssr
 
 # go2rtc binary (downloaded separately)
 server/go2rtc
+.NSC - Collation of Traffic Facing CCTVs.csv
+.N105_CCTV.csv

@@ -5,7 +5,7 @@ import { AlertTriangle, RefreshCw, Search, ListFilter, LayoutDashboard, Map as M
 import { fetchWazeIncidents, fetchTrafficView, fetchTrafficCameras } from './services/wazeService';
 import { ManagedIncident, IncidentStatus, FilterCategory, WazeTrafficJam } from './types';
 import { FeedSelector } from './components/FeedSelector';
-import { CATEGORY_CONFIG, SUBTYPE_MAPPING, DEMO_ALERTS, FEED_SOURCES, FEED_POLL_INTERVAL_MS, NSC_SMART_VMS_CCTV_CAMERAS } from './constants';
+import { CATEGORY_CONFIG, SUBTYPE_MAPPING, DEMO_ALERTS, FEED_SOURCES, FEED_POLL_INTERVAL_MS, NSC_SMART_VMS_CCTV_CAMERAS, NSC_CCTV_CAMERAS } from './constants';
 import { IncidentModal } from './components/IncidentModal';
 import { IncidentFilter } from './components/IncidentFilter';
 import { IncidentStats } from './components/IncidentStats';
@@ -238,6 +238,16 @@ function App() {
       setLoadingCameras(false);
     }
   };
+
+  const activeCCTVs = useMemo(() => {
+    if (!showCameras) return [];
+    let cctvs = [] as any[];
+    if (activeFeedIds.includes('NSC-Smart-VMS')) {
+      cctvs = cctvs.concat(NSC_SMART_VMS_CCTV_CAMERAS);
+    }
+    const otherCCTVs = NSC_CCTV_CAMERAS.filter(c => activeFeedIds.includes(c.area));
+    return cctvs.concat(otherCCTVs);
+  }, [showCameras, activeFeedIds]);
 
   // Initial load (traffic + cameras also loaded via loadData)
   useEffect(() => {
@@ -490,7 +500,7 @@ function App() {
                 onSelect={setSelectedIncident}
                 trafficData={showTraffic ? trafficData : []}
                 cameras={showCameras ? cameras : []}
-                cctvCameras={showCameras && activeFeedIds.includes('NSC-Smart-VMS') ? NSC_SMART_VMS_CCTV_CAMERAS : []}
+                cctvCameras={activeCCTVs}
                 activeFeedIds={activeFeedIds}
                 onRefreshCamera={refreshCamera}
               />
