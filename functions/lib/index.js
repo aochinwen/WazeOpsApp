@@ -1,22 +1,22 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function (o, m, k, k2) {
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
     if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-        desc = { enumerable: true, get: function () { return m[k]; } };
+      desc = { enumerable: true, get: function() { return m[k]; } };
     }
     Object.defineProperty(o, k2, desc);
-}) : (function (o, m, k, k2) {
+}) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
 }));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function (o, v) {
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
     Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function (o, v) {
+}) : function(o, v) {
     o["default"] = v;
 });
 var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function (o) {
+    var ownKeys = function(o) {
         ownKeys = Object.getOwnPropertyNames || function (o) {
             var ar = [];
             for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
@@ -43,6 +43,7 @@ const cors_1 = __importDefault(require("cors"));
 const axios_1 = __importDefault(require("axios"));
 const sdk_1 = require("@infisical/sdk");
 const crypto_1 = __importDefault(require("crypto"));
+const cctvCameras_1 = require("./cctvCameras");
 admin.initializeApp();
 // --- Secrets & Config ---
 let API_KEY = "default_key";
@@ -50,6 +51,7 @@ let API_KEY = "default_key";
 let NOTIFY_URL = "https://api-xkkfhwymhq-uc.a.run.app/api/notify";
 let ALERTS_URL = "https://api-xkkfhwymhq-uc.a.run.app/api/alerts";
 let DATAMALL_API_KEY = "";
+let CCTV_URL = "https://cctv-snapshot-881721965630.us-central1.run.app";
 let secretsLoaded = false;
 const FEED_SOURCES = [
     { id: 'NSC-N101', name: 'NSC-N101', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/838924d4-1642-4419-9e9f-3d17ffe11fcf?format=1' },
@@ -62,8 +64,8 @@ const FEED_SOURCES = [
     { id: 'NSC-N111', name: 'NSC-N111', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/6df32654-29e2-41d6-9df2-f287efc799bd?format=1' },
     { id: 'NSC-N112', name: 'NSC-N112', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/ac49baf5-cbe1-44ea-8ee3-7c9bdbd82ff0?format=1' },
     { id: 'NSC-N115', name: 'NSC-N115', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/cb390849-f2ef-459f-b136-c28cd473bc24?format=1' },
-    { id: 'NSC-N113', name: 'NSC-N113', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/a2141ab7-ad83-4456-a614-54c572a780d4?format=1' },
-    { id: 'NSC-Smart VMS', name: 'NSC-Smart VMS', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/e0c6ef0a-aae0-4e8f-986b-65fb02a5e5a9?format=1' },
+    { id: 'NSC-N113', name: 'NSC-113', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/a2141ab7-ad83-4456-a614-54c572a780d4?format=1' },
+    { id: 'NSC-Smart-VMS', name: 'NSC-Smart VMS', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/e0c6ef0a-aae0-4e8f-986b-65fb02a5e5a9?format=1' },
     { id: 'NSC-N105', name: 'NSC-N105', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/ee935c52-98cd-4aa0-bac4-6f918a60b948?format=1' },
     { id: 'feed-0d9de297', name: 'Feed 0d9de297', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/0d9de297-44e8-4c4b-97bb-9d35115dc45b?format=1' },
     { id: 'feed-27b495d6', name: 'Feed 27b495d6', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/27b495d6-e791-477c-8ca6-f5c07e69d245?format=1' },
@@ -82,8 +84,8 @@ const FEED_ID_TO_SLUG = {
     'NSC-N112': 'nsc_n112',
     'NSC-N115': 'nsc_n115',
     'NSC-N113': 'nsc_n113',
+    'NSC-Smart-VMS': 'nsc_smart_vms',
     'NSC-N105': 'nsc_n105',
-    'NSC-Smart VMS': 'nsc_smart_vms',
     'LTA_Traffic': 'lta_traffic',
     'feed-0d9de297': 'feed_0d9de297',
     'feed-27b495d6': 'feed_27b495d6',
@@ -118,6 +120,14 @@ async function loadSecrets() {
             const ltaKeySecret = await client.getSecret({ secretName: "DATAMALL_API_KEY", projectId: project_id, environment: env });
             if (ltaKeySecret)
                 DATAMALL_API_KEY = ltaKeySecret.secretValue;
+            try {
+                const cctvUrlSecret = await client.getSecret({ secretName: "CCTV_URL", projectId: project_id, environment: env });
+                if (cctvUrlSecret === null || cctvUrlSecret === void 0 ? void 0 : cctvUrlSecret.secretValue)
+                    CCTV_URL = cctvUrlSecret.secretValue;
+            }
+            catch (_a) {
+                console.log("CCTV_URL secret not found in Infisical, using default.");
+            }
             secretsLoaded = true;
             console.log("Secrets loaded from Infisical.");
         }
@@ -317,57 +327,84 @@ exports.monitor = functions
     .runWith({ secrets: ["INFISICAL"] })
     .pubsub.schedule('every 5 minutes')
     .onRun(async (context) => {
-        await loadSecrets();
-        console.log("Running scheduled monitor...");
-        // Define "New" as published in the last 5.5 minutes
-        // This covers the schedule interval + 30s buffer
-        const TIME_WINDOW = 5.5 * 60 * 1000;
-        const now = Date.now();
-        // 1. Check Waze Feeds
-        for (const source of FEED_SOURCES) {
-            const alerts = await fetchWazeFeed(source.url);
-            const newAlerts = alerts.filter(a => (now - a.pubMillis) < TIME_WINDOW);
-            console.log(`[${source.name}] Found ${alerts.length} total, ${newAlerts.length} new.`);
-            for (const alert of newAlerts) {
-                // Ignore JAM type notifications
-                if (alert.type === 'JAM') {
-                    console.log(`[${source.name}] Skipping JAM notification for ${alert.uuid}`);
-                    continue;
-                }
-                await sendNotification(alert, source.name, source.id);
+    await loadSecrets();
+    console.log("Running scheduled monitor...");
+    // Define "New" as published in the last 5.5 minutes
+    // This covers the schedule interval + 30s buffer
+    const TIME_WINDOW = 5.5 * 60 * 1000;
+    const now = Date.now();
+    // 1. Check Waze Feeds
+    for (const source of FEED_SOURCES) {
+        const alerts = await fetchWazeFeed(source.url);
+        const newAlerts = alerts.filter(a => (now - a.pubMillis) < TIME_WINDOW);
+        console.log(`[${source.name}] Found ${alerts.length} total, ${newAlerts.length} new.`);
+        for (const alert of newAlerts) {
+            // Ignore JAM type notifications
+            if (alert.type === 'JAM') {
+                console.log(`[${source.name}] Skipping JAM notification for ${alert.uuid}`);
+                continue;
             }
+            await sendNotification(alert, source.name, source.id);
         }
-        // 2. Check LTA
-        // 2. Check LTA
-        const ltaAlerts = await fetchLtaData();
-        // Deduplication: Use Firestore to track sent UUIDs
-        const db = admin.firestore();
-        const sentRef = db.collection('sent_lta_notifications');
-        let sentCount = 0;
-        for (const alert of ltaAlerts) {
-            const docRef = sentRef.doc(alert.uuid);
-            try {
-                const doc = await docRef.get();
-                if (doc.exists) {
-                    // Already sent
-                    continue;
-                }
-                // If not sent, send it now
-                await sendNotification(alert, "Singapore LTA", "LTA_Traffic");
-                // Mark as sent in Firestore with a timestamp
-                await docRef.set({
-                    sentAt: admin.firestore.FieldValue.serverTimestamp(),
-                    message: alert.reportDescription || ""
-                });
-                sentCount++;
+    }
+    // 2. Check LTA
+    // 2. Check LTA
+    const ltaAlerts = await fetchLtaData();
+    // Deduplication: Use Firestore to track sent UUIDs
+    const db = admin.firestore();
+    const sentRef = db.collection('sent_lta_notifications');
+    let sentCount = 0;
+    for (const alert of ltaAlerts) {
+        const docRef = sentRef.doc(alert.uuid);
+        try {
+            const doc = await docRef.get();
+            if (doc.exists) {
+                // Already sent
+                continue;
             }
-            catch (e) {
-                console.error(`Firestore Check Error for ${alert.uuid}:`, e.message);
-            }
+            // If not sent, send it now
+            await sendNotification(alert, "Singapore LTA", "LTA_Traffic");
+            // Mark as sent in Firestore with a timestamp
+            await docRef.set({
+                sentAt: admin.firestore.FieldValue.serverTimestamp(),
+                message: alert.reportDescription || ""
+            });
+            sentCount++;
         }
-        console.log(`[LTA] Processed ${ltaAlerts.length} alerts. Sent ${sentCount} new notifications.`);
+        catch (e) {
+            console.error(`Firestore Check Error for ${alert.uuid}:`, e.message);
+        }
+    }
+    console.log(`[LTA] Processed ${ltaAlerts.length} alerts. Sent ${sentCount} new notifications.`);
+    return null;
+});
+// Scheduled Cleanup for LTA Notifications
+// Runs daily at midnight to remove records older than 7 days
+exports.cleanupLtaNotifications = functions
+    .runWith({ secrets: ["INFISICAL"], timeoutSeconds: 540, memory: '256MB' })
+    .pubsub.schedule('0 0 * * *') // Daily at midnight
+    .onRun(async (context) => {
+    const db = admin.firestore();
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 7);
+    console.log(`[Cleanup] Cleaning up LTA notifications older than ${cutoff.toISOString()}`);
+    // Query for documents older than the cutoff
+    const oldDocs = await db.collection('sent_lta_notifications')
+        .where('sentAt', '<', admin.firestore.Timestamp.fromDate(cutoff))
+        .limit(500) // Process in batches if there are many
+        .get();
+    if (oldDocs.empty) {
+        console.log('[Cleanup] No old notifications to clean up.');
         return null;
+    }
+    const batch = db.batch();
+    oldDocs.forEach(doc => {
+        batch.delete(doc.ref);
     });
+    await batch.commit();
+    console.log(`[Cleanup] Successfully deleted ${oldDocs.size} old notifications.`);
+    return null;
+});
 // --- AI Summary ---
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 let GEMINI_API_KEY = "";
@@ -472,5 +509,85 @@ app.post('/summarize', async (req, res) => {
         console.error("AI Gen Error:", e);
         res.status(502).json({ error: "AI Generation failed", details: e.message });
     }
+});
+// --- CCTV Health Check ---
+// Pings every camera's snapshot endpoint every 15 minutes and writes
+// the result to Firestore: cctv_health/{cameraId}
+exports.cctvHealthCheck = functions
+    .runWith({ secrets: ["INFISICAL"], timeoutSeconds: 540, memory: '512MB' })
+    .pubsub.schedule('every 15 minutes')
+    .onRun(async (_context) => {
+    await loadSecrets();
+    console.log(`[CCTV Health] Starting check for ${cctvCameras_1.ALL_CCTV_CAMERAS.length} cameras. CCTV_URL: ${CCTV_URL}`);
+    const db = admin.firestore();
+    const SNAPSHOT_TIMEOUT_MS = 8000;
+    const BATCH_SIZE = 10; // Process in batches to avoid overwhelming Cloud Run
+    // Process cameras in batches
+    for (let i = 0; i < cctvCameras_1.ALL_CCTV_CAMERAS.length; i += BATCH_SIZE) {
+        const batch = cctvCameras_1.ALL_CCTV_CAMERAS.slice(i, i + BATCH_SIZE);
+        await Promise.all(batch.map(async (camera) => {
+            var _a;
+            const start = Date.now();
+            let status = 'offline';
+            let responseTimeMs = null;
+            let errorMessage = null;
+            const RETRY_DELAY_MS = 3000;
+            // go2rtc lazily connects to RTSP — the first request may return 0 bytes
+            // while it establishes the stream. We retry once after a short delay.
+            const trySnapshot = async () => {
+                try {
+                    const response = await axios_1.default.get(`${CCTV_URL}/snapshot?src=${encodeURIComponent(camera.id)}`, {
+                        responseType: 'arraybuffer',
+                        timeout: SNAPSHOT_TIMEOUT_MS,
+                        // Accept both 200 (JPEG) and 502 (error GIF) so axios doesn't throw on the 502
+                        validateStatus: (s) => s === 200 || s === 502,
+                    });
+                    const bytes = Buffer.from(response.data).length;
+                    // A real JPEG is always >> 100 bytes.
+                    // The transparent GIF fallback is 68 bytes (returned on 502).
+                    return { bytes, ok: response.status === 200 && bytes > 100 };
+                }
+                catch (e) {
+                    return { bytes: 0, ok: false, err: e.message || 'Request failed' };
+                }
+            };
+            // First attempt
+            let result = await trySnapshot();
+            responseTimeMs = Date.now() - start;
+            // Retry once if first attempt failed (cold RTSP connection)
+            if (!result.ok) {
+                await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+                const retryStart = Date.now();
+                result = await trySnapshot();
+                responseTimeMs = Date.now() - retryStart;
+            }
+            if (result.ok) {
+                status = 'online';
+            }
+            else {
+                status = 'offline';
+                errorMessage = (_a = result.err) !== null && _a !== void 0 ? _a : `Received ${result.bytes} bytes (stream not ready)`;
+            }
+            const record = {
+                cameraId: camera.id,
+                name: camera.name,
+                area: camera.area,
+                status,
+                lastChecked: admin.firestore.FieldValue.serverTimestamp(),
+                responseTimeMs,
+            };
+            if (errorMessage)
+                record.errorMessage = errorMessage;
+            try {
+                await db.collection('cctv_health').doc(camera.id).set(record, { merge: true });
+                console.log(`[CCTV Health] ${camera.id}: ${status} (${responseTimeMs}ms)`);
+            }
+            catch (firestoreErr) {
+                console.error(`[CCTV Health] Firestore write failed for ${camera.id}:`, firestoreErr.message);
+            }
+        }));
+    }
+    console.log('[CCTV Health] Check complete.');
+    return null;
 });
 //# sourceMappingURL=index.js.map

@@ -3,7 +3,8 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { AlertTriangle, RefreshCw, Search, ListFilter, LayoutDashboard, Map as MapIcon, Layers, Camera } from 'lucide-react';
 import { fetchWazeIncidents, fetchTrafficView, fetchTrafficCameras } from './services/wazeService';
-import { ManagedIncident, IncidentStatus, FilterCategory, WazeTrafficJam } from './types';
+import { subscribeToCctvHealth } from './services/cctvHealthService';
+import { ManagedIncident, IncidentStatus, FilterCategory, WazeTrafficJam, CctvHealthRecord } from './types';
 import { FeedSelector } from './components/FeedSelector';
 import { CATEGORY_CONFIG, SUBTYPE_MAPPING, DEMO_ALERTS, FEED_SOURCES, FEED_POLL_INTERVAL_MS, NSC_SMART_VMS_CCTV_CAMERAS, NSC_CCTV_CAMERAS } from './constants';
 import { IncidentModal } from './components/IncidentModal';
@@ -24,6 +25,8 @@ function App() {
   const [loadingTraffic, setLoadingTraffic] = useState(false);
   const [showTraffic, setShowTraffic] = useState(true);
   const [showCameras, setShowCameras] = useState(false);
+  const [cctvHealth, setCctvHealth] = useState<Record<string, CctvHealthRecord>>({});
+  const cctvHealthUnsubRef = useRef<(() => void) | null>(null);
 
   const [selectedIncident, setSelectedIncident] = useState<ManagedIncident | null>(null);
   const [filter, setFilter] = useState<FilterCategory>('ALL');
@@ -215,8 +218,16 @@ function App() {
     setShowCameras(newState);
     if (newState) {
       loadCameras();
+      // Subscribe to real-time health updates
+      if (!cctvHealthUnsubRef.current) {
+        cctvHealthUnsubRef.current = subscribeToCctvHealth(setCctvHealth);
+      }
     } else {
       setCameras([]);
+      // Unsubscribe and clear health data
+      cctvHealthUnsubRef.current?.();
+      cctvHealthUnsubRef.current = null;
+      setCctvHealth({});
     }
   };
 
@@ -503,6 +514,7 @@ function App() {
                 cctvCameras={activeCCTVs}
                 activeFeedIds={activeFeedIds}
                 onRefreshCamera={refreshCamera}
+                cctvHealth={cctvHealth}
               />
             ) : (
               <div className={`

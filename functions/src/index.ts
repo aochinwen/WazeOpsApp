@@ -5,6 +5,7 @@ import cors from 'cors';
 import axios from 'axios';
 import { InfisicalClient } from '@infisical/sdk';
 import crypto from 'crypto';
+import { ALL_CCTV_CAMERAS } from './cctvCameras';
 
 admin.initializeApp();
 
@@ -39,6 +40,7 @@ let NOTIFY_URL = "https://api-xkkfhwymhq-uc.a.run.app/api/notify";
 let ALERTS_URL = "https://api-xkkfhwymhq-uc.a.run.app/api/alerts";
 
 let DATAMALL_API_KEY = "";
+let CCTV_URL = "https://cctv-snapshot-881721965630.us-central1.run.app";
 let secretsLoaded = false;
 
 const FEED_SOURCES = [
@@ -113,6 +115,13 @@ async function loadSecrets() {
 
             const ltaKeySecret = await client.getSecret({ secretName: "DATAMALL_API_KEY", projectId: project_id, environment: env });
             if (ltaKeySecret) DATAMALL_API_KEY = ltaKeySecret.secretValue;
+
+            try {
+                const cctvUrlSecret = await client.getSecret({ secretName: "CCTV_URL", projectId: project_id, environment: env });
+                if (cctvUrlSecret?.secretValue) CCTV_URL = cctvUrlSecret.secretValue;
+            } catch {
+                console.log("CCTV_URL secret not found in Infisical, using default.");
+            }
 
             secretsLoaded = true;
             console.log("Secrets loaded from Infisical.");
@@ -389,6 +398,39 @@ exports.monitor = functions
         return null;
     });
 
+// Scheduled Cleanup for LTA Notifications
+// Runs daily at midnight to remove records older than 7 days
+exports.cleanupLtaNotifications = functions
+    .runWith({ secrets: ["INFISICAL"], timeoutSeconds: 540, memory: '256MB' })
+    .pubsub.schedule('0 0 * * *') // Daily at midnight
+    .onRun(async (context) => {
+        const db = admin.firestore();
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 7);
+        
+        console.log(`[Cleanup] Cleaning up LTA notifications older than ${cutoff.toISOString()}`);
+        
+        // Query for documents older than the cutoff
+        const oldDocs = await db.collection('sent_lta_notifications')
+            .where('sentAt', '<', admin.firestore.Timestamp.fromDate(cutoff))
+            .limit(500) // Process in batches if there are many
+            .get();
+            
+        if (oldDocs.empty) {
+            console.log('[Cleanup] No old notifications to clean up.');
+            return null;
+        }
+
+        const batch = db.batch();
+        oldDocs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        
+        await batch.commit();
+        console.log(`[Cleanup] Successfully deleted ${oldDocs.size} old notifications.`);
+        return null;
+    });
+
 // --- AI Summary ---
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 let GEMINI_API_KEY = "";
@@ -501,3 +543,93 @@ app.post('/summarize', async (req, res) => {
         res.status(502).json({ error: "AI Generation failed", details: e.message });
     }
 });
+
+// --- CCTV Health Check ---
+// Pings every camera's snapshot endpoint every 15 minutes and writes
+// the result to Firestore: cctv_health/{cameraId}
+exports.cctvHealthCheck = functions
+    .runWith({ secrets: ["INFISICAL"], timeoutSeconds: 540, memory: '512MB' })
+    .pubsub.schedule('every 15 minutes')
+    .onRun(async (_context) => {
+        await loadSecrets();
+        console.log(`[CCTV Health] Starting check for ${ALL_CCTV_CAMERAS.length} cameras. CCTV_URL: ${CCTV_URL}`);
+
+        const db = admin.firestore();
+        const SNAPSHOT_TIMEOUT_MS = 8000;
+        const BATCH_SIZE = 10; // Process in batches to avoid overwhelming Cloud Run
+
+        // Process cameras in batches
+        for (let i = 0; i < ALL_CCTV_CAMERAS.length; i += BATCH_SIZE) {
+            const batch = ALL_CCTV_CAMERAS.slice(i, i + BATCH_SIZE);
+
+            await Promise.all(batch.map(async (camera) => {
+                const start = Date.now();
+                let status: 'online' | 'offline' = 'offline';
+                let responseTimeMs: number | null = null;
+                let errorMessage: string | null = null;
+
+                const RETRY_DELAY_MS = 3000;
+
+                // go2rtc lazily connects to RTSP — the first request may return 0 bytes
+                // while it establishes the stream. We retry once after a short delay.
+                const trySnapshot = async (): Promise<{ bytes: number; ok: boolean; err?: string }> => {
+                    try {
+                        const response = await axios.get(
+                            `${CCTV_URL}/snapshot?src=${encodeURIComponent(camera.id)}`,
+                            {
+                                responseType: 'arraybuffer',
+                                timeout: SNAPSHOT_TIMEOUT_MS,
+                                // Accept both 200 (JPEG) and 502 (error GIF) so axios doesn't throw on the 502
+                                validateStatus: (s) => s === 200 || s === 502,
+                            }
+                        );
+                        const bytes = Buffer.from(response.data).length;
+                        // A real JPEG is always >> 100 bytes.
+                        // The transparent GIF fallback is 68 bytes (returned on 502).
+                        return { bytes, ok: response.status === 200 && bytes > 100 };
+                    } catch (e: any) {
+                        return { bytes: 0, ok: false, err: e.message || 'Request failed' };
+                    }
+                };
+
+                // First attempt
+                let result = await trySnapshot();
+                responseTimeMs = Date.now() - start;
+
+                // Retry once if first attempt failed (cold RTSP connection)
+                if (!result.ok) {
+                    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+                    const retryStart = Date.now();
+                    result = await trySnapshot();
+                    responseTimeMs = Date.now() - retryStart;
+                }
+
+                if (result.ok) {
+                    status = 'online';
+                } else {
+                    status = 'offline';
+                    errorMessage = result.err ?? `Received ${result.bytes} bytes (stream not ready)`;
+                }
+
+                const record: Record<string, any> = {
+                    cameraId: camera.id,
+                    name: camera.name,
+                    area: camera.area,
+                    status,
+                    lastChecked: admin.firestore.FieldValue.serverTimestamp(),
+                    responseTimeMs,
+                };
+                if (errorMessage) record.errorMessage = errorMessage;
+
+                try {
+                    await db.collection('cctv_health').doc(camera.id).set(record, { merge: true });
+                    console.log(`[CCTV Health] ${camera.id}: ${status} (${responseTimeMs}ms)`);
+                } catch (firestoreErr: any) {
+                    console.error(`[CCTV Health] Firestore write failed for ${camera.id}:`, firestoreErr.message);
+                }
+            }));
+        }
+
+        console.log('[CCTV Health] Check complete.');
+        return null;
+    });

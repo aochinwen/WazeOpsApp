@@ -105,3 +105,15 @@ export interface CCTVCamera {
   area: string;
   device: string;
 }
+
+export type HealthStatus = 'online' | 'offline' | 'unknown';
+
+export interface CctvHealthRecord {
+  cameraId: string;
+  name: string;
+  area: string;
+  status: HealthStatus;
+  lastChecked: Date | null;
+  responseTimeMs: number | null;
+  errorMessage?: string;
+}

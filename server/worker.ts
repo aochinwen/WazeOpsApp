@@ -424,10 +424,21 @@ app.get('/stream.mp4', async (req, res) => {
   }
 });
 
+// Minimal 1x1 transparent GIF — returned instead of JSON on snapshot errors to prevent
+// ERR_BLOCKED_BY_ORB (browser blocks non-image MIME types loaded as <img> src).
+// The frontend onError handler still fires because HTTP status >= 400 triggers it.
+const TRANSPARENT_GIF = Buffer.from(
+  'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+  'base64'
+);
+
 // GET /snapshot - Proxy JPEG snapshot from go2rtc RTSP stream
 app.get('/snapshot', async (req, res) => {
   const src = req.query.src as string;
-  if (!src) return res.status(400).json({ error: 'Missing src parameter' });
+  if (!src) {
+    res.set('Content-Type', 'image/gif');
+    return res.status(400).send(TRANSPARENT_GIF);
+  }
 
   // Create an abort controller to cancel the upstream request if the client disconnects
   const controller = new AbortController();
@@ -440,8 +451,8 @@ app.get('/snapshot', async (req, res) => {
       `${GO2RTC_URL}/api/frame.jpeg?src=${encodeURIComponent(src)}`,
       { 
         responseType: 'arraybuffer', 
-        timeout: 10000, // Reduced timeout to prevent long hangs
-        signal: controller.signal // Link the abort signal
+        timeout: 10000,
+        signal: controller.signal
       }
     );
 
@@ -450,7 +461,8 @@ app.get('/snapshot', async (req, res) => {
     if (buffer.length === 0) {
       console.error(`[Snapshot] go2rtc returned 0 bytes for ${src}. Stream might be offline or unresponsive.`);
       if (!res.headersSent) {
-        return res.status(502).json({ error: "Empty snapshot from go2rtc stream" });
+        res.set('Content-Type', 'image/gif');
+        return res.status(502).send(TRANSPARENT_GIF);
       }
       return;
     }
@@ -465,7 +477,8 @@ app.get('/snapshot', async (req, res) => {
     }
     console.error("go2rtc snapshot proxy error:", error.message);
     if (!res.headersSent) {
-      res.status(502).json({ error: "Failed to capture snapshot from go2rtc" });
+      res.set('Content-Type', 'image/gif');
+      res.status(502).send(TRANSPARENT_GIF);
     }
   }
 });

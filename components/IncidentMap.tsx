@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { ManagedIncident, WazeTrafficJam, TrafficCamera, CCTVCamera } from '../types';
+import { ManagedIncident, WazeTrafficJam, TrafficCamera, CCTVCamera, CctvHealthRecord } from '../types';
 import { CATEGORY_CONFIG, JAM_LEVEL_COLORS, JAM_DESCRIPTIONS, CAMERA_REFRESH_COOLDOWN_SEC } from '../constants';
 import { createRoot } from 'react-dom/client';
 import { AlertTriangle, Camera, RefreshCw, Video } from 'lucide-react';
@@ -17,6 +17,7 @@ interface IncidentMapProps {
     activeFeedIds?: string[];
     onSelect: (incident: ManagedIncident) => void;
     onRefreshCamera?: (cameraId: string) => Promise<string | null>;
+    cctvHealth?: Record<string, CctvHealthRecord>;
 }
 
 // Internal component for Camera Popup
@@ -86,7 +87,7 @@ const CameraPopup: React.FC<{ camera: TrafficCamera, onRefresh: (id: string) => 
     );
 };
 
-export const IncidentMap: React.FC<IncidentMapProps> = ({ incidents, trafficData = [], cameras = [], cctvCameras = [], activeFeedIds, onSelect, onRefreshCamera }) => {
+export const IncidentMap: React.FC<IncidentMapProps> = ({ incidents, trafficData = [], cameras = [], cctvCameras = [], activeFeedIds, onSelect, onRefreshCamera, cctvHealth = {} }) => {
     const mapContainer = useRef<HTMLDivElement>(null);
     const map = useRef<any>(null);
     const markers = useRef<any[]>([]);
@@ -96,12 +97,19 @@ export const IncidentMap: React.FC<IncidentMapProps> = ({ incidents, trafficData
     const popup = useRef<any>(null); // Keep for legacy incidents (though can be refactored too)
     // We need to track popup roots to unmount them cleanly
     const popupRoots = useRef<Map<any, any>>(new Map());
+    // Ref that always holds the latest cctvHealth — avoids stale closures in renderPopup
+    const cctvHealthRef = useRef<Record<string, CctvHealthRecord>>(cctvHealth);
     // Fit bounds only when feed selection changes, not on every polling update
     const pendingFitBounds = useRef(true);
 
     const [mapError, setMapError] = useState(false);
     const [isMapLoaded, setIsMapLoaded] = useState(false);
     const mapToken = import.meta.env.VITE_MAPBOX_TOKEN || '';
+
+    // Keep cctvHealthRef in sync so popup closures always read the latest value
+    useEffect(() => {
+        cctvHealthRef.current = cctvHealth;
+    }, [cctvHealth]);
 
     useEffect(() => {
         if (!mapContainer.current) return;
@@ -474,8 +482,15 @@ export const IncidentMap: React.FC<IncidentMapProps> = ({ incidents, trafficData
             const el = document.createElement('div');
             el.className = 'marker-cctv';
             el.title = cam.name;
-            el.style.cssText = 'cursor:pointer;padding:6px;border-radius:9999px;background:#ecfdf5;border:1px solid #6ee7b7;box-shadow:0 1px 2px rgba(0,0,0,0.05);display:flex;align-items:center;justify-content:center;';
-            el.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.934a.5.5 0 0 0-.777-.416L16 11"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg>';
+            const initialStatus = cctvHealth[cam.id]?.status ?? 'unknown';
+            const isOnline = initialStatus === 'online';
+            const bgColor = isOnline ? '#ecfdf5' : '#fef2f2';
+            const borderColor = isOnline ? '#6ee7b7' : '#fca5a5';
+            const strokeColor = isOnline ? '#047857' : '#b91c1c';
+            const opacity = isOnline ? '1' : '0.5';
+
+            el.style.cssText = `cursor:pointer;padding:6px;border-radius:9999px;background:${bgColor};border:1px solid ${borderColor};box-shadow:0 1px 2px rgba(0,0,0,0.05);display:flex;align-items:center;justify-content:center;opacity:${opacity};`;
+            el.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.934a.5.5 0 0 0-.777-.416L16 11"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg>`;
 
             const marker = new mapboxgl.Marker(el)
                 .setLngLat([cam.longitude, cam.latitude])
@@ -487,10 +502,13 @@ export const IncidentMap: React.FC<IncidentMapProps> = ({ incidents, trafficData
             const popupRoot = createRoot(popupNode);
 
             const renderPopup = (active: boolean) => {
+                // Read from ref so we always get the latest health data, not a stale closure
+                const currentHealth = cctvHealthRef.current[cam.id];
                 popupRoot.render(
                     <CCTVCameraPopup
                         camera={cam}
                         active={active}
+                        health={currentHealth}
                         onStreamError={() => {
                             el.style.opacity = '0.25';
                             el.style.filter = 'grayscale(100%)';
@@ -522,7 +540,31 @@ export const IncidentMap: React.FC<IncidentMapProps> = ({ incidents, trafficData
                 console.warn('[CCTV Debug] fitBounds failed:', e);
             }
         }
-    }, [cctvCameras, mapError, isMapLoaded]);
+    }, [cctvCameras, cctvHealth, mapError, isMapLoaded]);
+
+    // Apply opacity to CCTV markers based on health status
+    // Runs whenever cctvHealth updates — no marker re-creation needed
+    useEffect(() => {
+        cctvMarkers.current.forEach((marker: any) => {
+            const el = marker.getElement() as HTMLElement | null;
+            if (!el) return;
+            const health = cctvHealth[marker._cctvId];
+            const status = health?.status ?? 'unknown';
+            const isOnline = status === 'online';
+
+            const bgColor = isOnline ? '#ecfdf5' : '#fef2f2';
+            const borderColor = isOnline ? '#6ee7b7' : '#fca5a5';
+            const strokeColor = isOnline ? '#047857' : '#b91c1c';
+            const opacity = isOnline ? '1' : '0.5';
+
+            el.style.background = bgColor;
+            el.style.borderColor = borderColor;
+            el.style.opacity = opacity;
+
+            const svg = el.querySelector('svg');
+            if (svg) svg.setAttribute('stroke', strokeColor);
+        });
+    }, [cctvHealth]);
 
     if (mapError) {
         // Fallback Static Map Construction

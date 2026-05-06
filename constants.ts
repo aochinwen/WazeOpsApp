@@ -71,7 +71,7 @@ export const FEED_SOURCES = [
     id: 'NSC-N108',
     name: 'NSC-N108',
     url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/9bedc7dd-f6d8-4379-97da-79ff4dee72fa?format=1',
-    tvtUrl: '',
+    tvtUrl: 'https://www.waze.com/row-partnerhub-api/feeds-tvt/9bedc7dd-f6d8-4379-97da-79ff4dee72fa?id=1773656084339',
     group: 'NSC (C2)'
   },
   {
