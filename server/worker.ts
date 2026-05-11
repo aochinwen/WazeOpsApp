@@ -85,6 +85,11 @@ interface WazeFeedResponse {
   alerts: WazeRawAlert[];
 }
 
+const TELEGRAM_EXCLUDED_SUBTYPES = new Set([
+  'HAZARD_ON_ROAD_LANE_CLOSED',
+  'HAZARD_ON_ROAD_CONSTRUCTION'
+]);
+
 class WazeMonitor {
   private seenIncidents: Set<string> = new Set();
   private isFirstRun: boolean = true;
@@ -181,6 +186,11 @@ class WazeMonitor {
 
   private async sendNotification(alert: WazeRawAlert, source: { id: string, name: string }) {
     const subtype = alert.subtype || alert.type;
+
+    if (TELEGRAM_EXCLUDED_SUBTYPES.has(subtype)) {
+      console.log(`[WazeMonitor] Notification skipped for ${alert.uuid} with subtype ${subtype}`);
+      return;
+    }
     const street = alert.street || "Unknown Street";
     const city = alert.city || "Unknown City";
     // NOTE: Link includes hash routing and source parameter
