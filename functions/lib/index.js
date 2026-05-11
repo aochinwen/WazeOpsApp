@@ -45,6 +45,10 @@ const sdk_1 = require("@infisical/sdk");
 const crypto_1 = __importDefault(require("crypto"));
 const cctvCameras_1 = require("./cctvCameras");
 admin.initializeApp();
+const TELEGRAM_EXCLUDED_SUBTYPES = new Set([
+    'HAZARD_ON_ROAD_LANE_CLOSED',
+    'HAZARD_ON_ROAD_CONSTRUCTION'
+]);
 // --- Secrets & Config ---
 let API_KEY = "default_key";
 // NEW: Updated Production Notification URL
@@ -59,6 +63,7 @@ const FEED_SOURCES = [
     { id: 'NSC-N103', name: 'NSC-N103', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/2ae59ac0-2054-4681-9af0-e41a67da94d8?format=1' },
     { id: 'NSC-N106', name: 'NSC-N106', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/a40b3615-d37b-4bb1-8770-b93292b59ccb?format=1' },
     { id: 'NSC-N107', name: 'NSC-N107', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/3e748db2-ce25-4ce7-a7eb-e80b8958bf3d?format=1' },
+    { id: 'NSC-N108', name: 'NSC-N108', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/9bedc7dd-f6d8-4379-97da-79ff4dee72fa?format=1' },
     { id: 'NSC-N109', name: 'NSC-N109', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/9340dec6-7bb3-4747-8118-74e9e33c1217?format=1' },
     { id: 'NSC-N110', name: 'NSC-N110', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/ef55d393-77d4-4c5b-b0a5-9e232d306a99?format=1' },
     { id: 'NSC-N111', name: 'NSC-N111', url: 'https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/6df32654-29e2-41d6-9df2-f287efc799bd?format=1' },
@@ -78,6 +83,7 @@ const FEED_ID_TO_SLUG = {
     'NSC-N103': 'nsc_n103',
     'NSC-N106': 'nsc_n106',
     'NSC-N107': 'nsc_n107',
+    'NSC-N108': 'nsc_n108',
     'NSC-N109': 'nsc_n109',
     'NSC-N110': 'nsc_n110',
     'NSC-N111': 'nsc_n111',
@@ -198,6 +204,10 @@ const fetchWazeFeed = async (url) => {
 };
 const sendNotification = async (alert, sourceName, sourceId) => {
     const subtype = alert.subtype || alert.type;
+    if (TELEGRAM_EXCLUDED_SUBTYPES.has(subtype)) {
+        console.log(`Notification skipped for ${alert.uuid} with subtype ${subtype}`);
+        return;
+    }
     const street = alert.street || "Unknown Street";
     const city = alert.city || "Unknown City";
     const detailsUrl = `https://aochinwen.github.io/WazeOpsApp/#/detail/${alert.uuid}?source=${sourceId}`;
