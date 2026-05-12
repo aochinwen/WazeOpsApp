@@ -565,6 +565,7 @@ function App() {
                     let slug = 'road_incident';
                     if (currentSource.id === 'thomson') slug = 'Thompson_Road';
                     if (currentSource.id === 'west') slug = 'West_Region';
+                    if (currentSource.id === 'NSC-N108') slug = 'nsc_n108';
 
                     try {
                       const response = await fetch(`${process.env.BACKEND_URL || ''}/notify`, {

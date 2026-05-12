@@ -202,6 +202,7 @@ class WazeMonitor {
     let slug = 'road_incident';
     if (source.id === 'thomson') slug = 'Thompson_Road';
     if (source.id === 'west') slug = 'West_Region';
+    if (source.id === 'NSC-N108') slug = 'nsc_n108';
 
     try {
       // The worker calls the API on the LOCAL server port directly
@@ -226,7 +227,8 @@ class WazeMonitor {
 // --- Feed Sources ---
 const FEED_SOURCES = [
   { id: 'west', name: 'West Area', url: "https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/b9eb1444-6cef-4cbd-b681-2937ad70dc9c?format=1" },
-  { id: 'thomson', name: 'Thomson Road', url: "https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/e0c6ef0a-aae0-4e8f-986b-65fb02a5e5a9?format=1" }
+  { id: 'thomson', name: 'Thomson Road', url: "https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/e0c6ef0a-aae0-4e8f-986b-65fb02a5e5a9?format=1" },
+  { id: 'NSC-N108', name: 'NSC-N108', url: "https://www.waze.com/row-partnerhub-api/partners/18727209890/waze-feeds/9bedc7dd-f6d8-4379-97da-79ff4dee72fa?format=1" }
 ];
 
 // --- Initialization Logic ---
